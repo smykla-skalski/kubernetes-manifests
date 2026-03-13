@@ -54,3 +54,28 @@ key: (flow_node
   "---"
   "..."
 ] @punctuation.special
+
+; Resource identity keys
+(block_mapping_pair
+  key: (flow_node
+    (plain_scalar
+      (string_scalar) @keyword))
+  (#any-of? @keyword "apiVersion" "kind"))
+
+; Structural sections
+(block_mapping_pair
+  key: (flow_node
+    (plain_scalar
+      (string_scalar) @type))
+  (#any-of? @type "metadata" "spec" "status" "template" "data" "stringData"))
+
+; Common Kubernetes keys
+(block_mapping_pair
+  key: (flow_node
+    (plain_scalar
+      (string_scalar) @attribute))
+  (#any-of? @attribute
+    "name" "namespace" "labels" "annotations" "containers" "initContainers" "volumes" "volumeMounts"
+    "ports" "env" "envFrom" "resources" "selector" "matchLabels" "matchExpressions" "replicas"
+    "strategy" "image" "imagePullPolicy" "command" "args" "livenessProbe" "readinessProbe"
+    "startupProbe" "requests" "limits" "serviceAccountName" "rules" "subjects" "roleRef"))

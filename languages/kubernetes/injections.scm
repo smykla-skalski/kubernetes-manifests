@@ -24,3 +24,23 @@
               (block_scalar) @injection.content)
           ]
           (#set! injection.language "javascript"))))))
+
+; Shell highlighting for command/args array items
+(block_mapping_pair
+  key: (flow_node) @_cmd_key
+  (#any-of? @_cmd_key "command" "args")
+  value: (block_node
+    (block_sequence
+      (block_sequence_item
+        (flow_node
+          (plain_scalar
+            (string_scalar) @injection.content))
+        (#set! injection.language "bash")))))
+
+; Shell highlighting for block scalar commands
+(block_mapping_pair
+  key: (flow_node) @_script_key
+  (#any-of? @_script_key "command" "script")
+  value: (block_node
+    (block_scalar) @injection.content)
+  (#set! injection.language "bash"))
