@@ -1,10 +1,12 @@
 mod context_server;
 mod docs;
+mod helm_language_server;
 mod language_server;
 mod settings;
 mod templates;
 
 use context_server::KubernetesContextServer;
+use helm_language_server::HelmLanguageServer;
 use language_server::{KubernetesLanguageServer, SERVER_NAME};
 use settings::merged_workspace_configuration;
 use templates::{resource_kinds, template_for_kind};
@@ -21,14 +23,15 @@ use zed_extension_api::{
 const SLASH_COMMAND_NAME: &str = "kubernetes";
 
 struct KubernetesExtension {
-    kubernetes_language_server: KubernetesLanguageServer,
-    kubernetes_context_server: KubernetesContextServer,
+    kubernetes_lsp: KubernetesLanguageServer,
+    helm_lsp: HelmLanguageServer,
+    context_server: KubernetesContextServer,
 }
 
 impl KubernetesExtension {
     fn ensure_known_server(language_server_id: &LanguageServerId) -> Result<()> {
         match language_server_id.as_ref() {
-            SERVER_NAME => Ok(()),
+            SERVER_NAME | helm_language_server::SERVER_NAME => Ok(()),
             _ => Err(format!("Unknown language server ID {language_server_id}")),
         }
     }
@@ -44,8 +47,9 @@ impl KubernetesExtension {
 impl zed::Extension for KubernetesExtension {
     fn new() -> Self {
         Self {
-            kubernetes_language_server: KubernetesLanguageServer::new(),
-            kubernetes_context_server: KubernetesContextServer::new(),
+            kubernetes_lsp: KubernetesLanguageServer::new(),
+            helm_lsp: HelmLanguageServer::new(),
+            context_server: KubernetesContextServer::new(),
         }
     }
 
@@ -55,8 +59,14 @@ impl zed::Extension for KubernetesExtension {
         worktree: &zed::Worktree,
     ) -> Result<zed::Command> {
         Self::ensure_known_server(language_server_id)?;
-        self.kubernetes_language_server
-            .language_server_command(language_server_id, worktree)
+        match language_server_id.as_ref() {
+            helm_language_server::SERVER_NAME => self
+                .helm_lsp
+                .language_server_command(language_server_id, worktree),
+            _ => self
+                .kubernetes_lsp
+                .language_server_command(language_server_id, worktree),
+        }
     }
 
     fn language_server_workspace_configuration(
@@ -65,6 +75,15 @@ impl zed::Extension for KubernetesExtension {
         worktree: &zed::Worktree,
     ) -> Result<Option<JsonValue>> {
         Self::ensure_known_server(language_server_id)?;
+
+        if language_server_id.as_ref() == helm_language_server::SERVER_NAME {
+            return Ok(
+                LspSettings::for_worktree(language_server_id.as_ref(), worktree)
+                    .ok()
+                    .and_then(|settings| settings.settings),
+            );
+        }
+
         let user_settings = LspSettings::for_worktree(language_server_id.as_ref(), worktree)
             .ok()
             .and_then(|settings| settings.settings);
@@ -236,7 +255,7 @@ impl zed::Extension for KubernetesExtension {
     ) -> Result<zed::Command> {
         Self::ensure_known_context_server(context_server_id)?;
         Ok(self
-            .kubernetes_context_server
+            .context_server
             .context_server_command(context_server_id, project))
     }
 
