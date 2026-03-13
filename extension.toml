@@ -17,6 +17,10 @@ languages = ["Kubernetes"]
 repository = "https://github.com/zed-industries/tree-sitter-yaml"
 commit = "baff0b51c64ef6a1fb1f8390f3ad6015b83ec13a"
 
+[slash_commands.kubernetes]
+description = "Insert a Kubernetes resource manifest template"
+requires_argument = true
+
 [[capabilities]]
 kind = "process:exec"
 command = "*"
