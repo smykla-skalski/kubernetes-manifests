@@ -1,0 +1,446 @@
+{
+  "Deployment": {
+    "prefix": ["deploy", "deployment"],
+    "body": [
+      "apiVersion: apps/v1",
+      "kind: Deployment",
+      "metadata:",
+      "  name: ${1:my-deployment}",
+      "  labels:",
+      "    app: ${2:my-app}",
+      "spec:",
+      "  replicas: ${3:1}",
+      "  selector:",
+      "    matchLabels:",
+      "      app: $2",
+      "  template:",
+      "    metadata:",
+      "      labels:",
+      "        app: $2",
+      "    spec:",
+      "      containers:",
+      "        - name: ${4:app}",
+      "          image: ${5:nginx:latest}",
+      "          ports:",
+      "            - containerPort: ${6:80}",
+      "$0"
+    ],
+    "description": "Kubernetes Deployment"
+  },
+  "Service": {
+    "prefix": ["svc", "service"],
+    "body": [
+      "apiVersion: v1",
+      "kind: Service",
+      "metadata:",
+      "  name: ${1:my-service}",
+      "spec:",
+      "  selector:",
+      "    app: ${2:my-app}",
+      "  ports:",
+      "    - port: ${3:80}",
+      "      targetPort: ${4:80}",
+      "  type: ${5:ClusterIP}",
+      "$0"
+    ],
+    "description": "Kubernetes Service"
+  },
+  "ConfigMap": {
+    "prefix": ["cm", "configmap"],
+    "body": [
+      "apiVersion: v1",
+      "kind: ConfigMap",
+      "metadata:",
+      "  name: ${1:my-configmap}",
+      "data:",
+      "  ${2:key}: ${3:value}",
+      "$0"
+    ],
+    "description": "Kubernetes ConfigMap"
+  },
+  "Secret": {
+    "prefix": "secret",
+    "body": [
+      "apiVersion: v1",
+      "kind: Secret",
+      "metadata:",
+      "  name: ${1:my-secret}",
+      "type: ${2:Opaque}",
+      "stringData:",
+      "  ${3:key}: ${4:value}",
+      "$0"
+    ],
+    "description": "Kubernetes Secret"
+  },
+  "Ingress": {
+    "prefix": ["ing", "ingress"],
+    "body": [
+      "apiVersion: networking.k8s.io/v1",
+      "kind: Ingress",
+      "metadata:",
+      "  name: ${1:my-ingress}",
+      "spec:",
+      "  rules:",
+      "    - host: ${2:example.com}",
+      "      http:",
+      "        paths:",
+      "          - path: ${3:/}",
+      "            pathType: ${4:Prefix}",
+      "            backend:",
+      "              service:",
+      "                name: ${5:my-service}",
+      "                port:",
+      "                  number: ${6:80}",
+      "$0"
+    ],
+    "description": "Kubernetes Ingress"
+  },
+  "StatefulSet": {
+    "prefix": ["sts", "statefulset"],
+    "body": [
+      "apiVersion: apps/v1",
+      "kind: StatefulSet",
+      "metadata:",
+      "  name: ${1:my-statefulset}",
+      "spec:",
+      "  serviceName: $1",
+      "  replicas: ${2:1}",
+      "  selector:",
+      "    matchLabels:",
+      "      app: ${3:my-app}",
+      "  template:",
+      "    metadata:",
+      "      labels:",
+      "        app: $3",
+      "    spec:",
+      "      containers:",
+      "        - name: ${4:app}",
+      "          image: ${5:nginx:latest}",
+      "          ports:",
+      "            - containerPort: ${6:80}",
+      "$0"
+    ],
+    "description": "Kubernetes StatefulSet"
+  },
+  "DaemonSet": {
+    "prefix": ["ds", "daemonset"],
+    "body": [
+      "apiVersion: apps/v1",
+      "kind: DaemonSet",
+      "metadata:",
+      "  name: ${1:my-daemonset}",
+      "spec:",
+      "  selector:",
+      "    matchLabels:",
+      "      app: ${2:my-app}",
+      "  template:",
+      "    metadata:",
+      "      labels:",
+      "        app: $2",
+      "    spec:",
+      "      containers:",
+      "        - name: ${3:app}",
+      "          image: ${4:nginx:latest}",
+      "$0"
+    ],
+    "description": "Kubernetes DaemonSet"
+  },
+  "Job": {
+    "prefix": "job",
+    "body": [
+      "apiVersion: batch/v1",
+      "kind: Job",
+      "metadata:",
+      "  name: ${1:my-job}",
+      "spec:",
+      "  template:",
+      "    spec:",
+      "      containers:",
+      "        - name: ${2:job}",
+      "          image: ${3:busybox:latest}",
+      "          command:",
+      "            - ${4:echo}",
+      "            - ${5:hello}",
+      "      restartPolicy: ${6:Never}",
+      "  backoffLimit: ${7:4}",
+      "$0"
+    ],
+    "description": "Kubernetes Job"
+  },
+  "CronJob": {
+    "prefix": ["cj", "cronjob"],
+    "body": [
+      "apiVersion: batch/v1",
+      "kind: CronJob",
+      "metadata:",
+      "  name: ${1:my-cronjob}",
+      "spec:",
+      "  schedule: \"${2:*/5 * * * *}\"",
+      "  jobTemplate:",
+      "    spec:",
+      "      template:",
+      "        spec:",
+      "          containers:",
+      "            - name: ${3:job}",
+      "              image: ${4:busybox:latest}",
+      "              command:",
+      "                - ${5:echo}",
+      "                - ${6:hello}",
+      "          restartPolicy: ${7:Never}",
+      "$0"
+    ],
+    "description": "Kubernetes CronJob"
+  },
+  "PersistentVolumeClaim": {
+    "prefix": ["pvc"],
+    "body": [
+      "apiVersion: v1",
+      "kind: PersistentVolumeClaim",
+      "metadata:",
+      "  name: ${1:my-pvc}",
+      "spec:",
+      "  accessModes:",
+      "    - ${2:ReadWriteOnce}",
+      "  resources:",
+      "    requests:",
+      "      storage: ${3:1Gi}",
+      "$0"
+    ],
+    "description": "Kubernetes PersistentVolumeClaim"
+  },
+  "Namespace": {
+    "prefix": ["ns", "namespace"],
+    "body": [
+      "apiVersion: v1",
+      "kind: Namespace",
+      "metadata:",
+      "  name: ${1:my-namespace}",
+      "$0"
+    ],
+    "description": "Kubernetes Namespace"
+  },
+  "ServiceAccount": {
+    "prefix": ["sa", "serviceaccount"],
+    "body": [
+      "apiVersion: v1",
+      "kind: ServiceAccount",
+      "metadata:",
+      "  name: ${1:my-service-account}",
+      "$0"
+    ],
+    "description": "Kubernetes ServiceAccount"
+  },
+  "Role": {
+    "prefix": "role",
+    "body": [
+      "apiVersion: rbac.authorization.k8s.io/v1",
+      "kind: Role",
+      "metadata:",
+      "  name: ${1:my-role}",
+      "rules:",
+      "  - apiGroups:",
+      "      - \"${2:}\"",
+      "    resources:",
+      "      - ${3:pods}",
+      "    verbs:",
+      "      - ${4:get}",
+      "      - ${5:list}",
+      "      - ${6:watch}",
+      "$0"
+    ],
+    "description": "Kubernetes Role"
+  },
+  "ClusterRole": {
+    "prefix": "clusterrole",
+    "body": [
+      "apiVersion: rbac.authorization.k8s.io/v1",
+      "kind: ClusterRole",
+      "metadata:",
+      "  name: ${1:my-clusterrole}",
+      "rules:",
+      "  - apiGroups:",
+      "      - \"${2:}\"",
+      "    resources:",
+      "      - ${3:pods}",
+      "    verbs:",
+      "      - ${4:get}",
+      "      - ${5:list}",
+      "      - ${6:watch}",
+      "$0"
+    ],
+    "description": "Kubernetes ClusterRole"
+  },
+  "RoleBinding": {
+    "prefix": ["rb", "rolebinding"],
+    "body": [
+      "apiVersion: rbac.authorization.k8s.io/v1",
+      "kind: RoleBinding",
+      "metadata:",
+      "  name: ${1:my-rolebinding}",
+      "subjects:",
+      "  - kind: ${2:ServiceAccount}",
+      "    name: ${3:my-service-account}",
+      "    namespace: ${4:default}",
+      "roleRef:",
+      "  kind: ${5:Role}",
+      "  name: ${6:my-role}",
+      "  apiGroup: rbac.authorization.k8s.io",
+      "$0"
+    ],
+    "description": "Kubernetes RoleBinding"
+  },
+  "HorizontalPodAutoscaler": {
+    "prefix": ["hpa"],
+    "body": [
+      "apiVersion: autoscaling/v2",
+      "kind: HorizontalPodAutoscaler",
+      "metadata:",
+      "  name: ${1:my-hpa}",
+      "spec:",
+      "  scaleTargetRef:",
+      "    apiVersion: apps/v1",
+      "    kind: ${2:Deployment}",
+      "    name: ${3:my-deployment}",
+      "  minReplicas: ${4:1}",
+      "  maxReplicas: ${5:10}",
+      "  metrics:",
+      "    - type: Resource",
+      "      resource:",
+      "        name: ${6:cpu}",
+      "        target:",
+      "          type: Utilization",
+      "          averageUtilization: ${7:80}",
+      "$0"
+    ],
+    "description": "Kubernetes HorizontalPodAutoscaler"
+  },
+  "NetworkPolicy": {
+    "prefix": ["netpol", "networkpolicy"],
+    "body": [
+      "apiVersion: networking.k8s.io/v1",
+      "kind: NetworkPolicy",
+      "metadata:",
+      "  name: ${1:my-network-policy}",
+      "spec:",
+      "  podSelector:",
+      "    matchLabels:",
+      "      app: ${2:my-app}",
+      "  policyTypes:",
+      "    - ${3:Ingress}",
+      "  ingress:",
+      "    - from:",
+      "        - podSelector:",
+      "            matchLabels:",
+      "              app: ${4:frontend}",
+      "      ports:",
+      "        - port: ${5:80}",
+      "$0"
+    ],
+    "description": "Kubernetes NetworkPolicy"
+  },
+  "Pod": {
+    "prefix": "pod",
+    "body": [
+      "apiVersion: v1",
+      "kind: Pod",
+      "metadata:",
+      "  name: ${1:my-pod}",
+      "spec:",
+      "  containers:",
+      "    - name: ${2:app}",
+      "      image: ${3:nginx:latest}",
+      "      ports:",
+      "        - containerPort: ${4:80}",
+      "$0"
+    ],
+    "description": "Kubernetes Pod"
+  },
+  "Container": {
+    "prefix": ["container", "cont"],
+    "body": [
+      "- name: ${1:container}",
+      "  image: ${2:nginx:latest}",
+      "  ports:",
+      "    - containerPort: ${3:80}",
+      "  resources:",
+      "    requests:",
+      "      cpu: ${4:100m}",
+      "      memory: ${5:128Mi}",
+      "    limits:",
+      "      cpu: ${6:500m}",
+      "      memory: ${7:256Mi}",
+      "$0"
+    ],
+    "description": "Container spec for pod template"
+  },
+  "Volume mount": {
+    "prefix": ["vm", "volumemount"],
+    "body": [
+      "- name: ${1:volume-name}",
+      "  mountPath: ${2:/data}",
+      "$0"
+    ],
+    "description": "Container volume mount"
+  },
+  "Environment variable": {
+    "prefix": ["envvar"],
+    "body": [
+      "- name: ${1:ENV_VAR}",
+      "  value: ${2:value}",
+      "$0"
+    ],
+    "description": "Container environment variable"
+  },
+  "Environment from secret": {
+    "prefix": ["envsecret"],
+    "body": [
+      "- name: ${1:ENV_VAR}",
+      "  valueFrom:",
+      "    secretKeyRef:",
+      "      name: ${2:secret-name}",
+      "      key: ${3:key}",
+      "$0"
+    ],
+    "description": "Container env from Secret key"
+  },
+  "Liveness probe": {
+    "prefix": ["liveness", "livenessprobe"],
+    "body": [
+      "livenessProbe:",
+      "  httpGet:",
+      "    path: ${1:/healthz}",
+      "    port: ${2:80}",
+      "  initialDelaySeconds: ${3:15}",
+      "  periodSeconds: ${4:10}",
+      "$0"
+    ],
+    "description": "HTTP liveness probe"
+  },
+  "Readiness probe": {
+    "prefix": ["readiness", "readinessprobe"],
+    "body": [
+      "readinessProbe:",
+      "  httpGet:",
+      "    path: ${1:/ready}",
+      "    port: ${2:80}",
+      "  initialDelaySeconds: ${3:5}",
+      "  periodSeconds: ${4:5}",
+      "$0"
+    ],
+    "description": "HTTP readiness probe"
+  },
+  "Resource limits": {
+    "prefix": ["resources", "limits"],
+    "body": [
+      "resources:",
+      "  requests:",
+      "    cpu: ${1:100m}",
+      "    memory: ${2:128Mi}",
+      "  limits:",
+      "    cpu: ${3:500m}",
+      "    memory: ${4:256Mi}",
+      "$0"
+    ],
+    "description": "Container resource requests and limits"
+  }
+}
