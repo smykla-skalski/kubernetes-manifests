@@ -302,6 +302,13 @@ mod tests {
                 "icon theme should map {suffix} to the kubernetes icon",
             );
         }
+        for suffix in ["helm.yaml", "helm.yml"] {
+            assert_eq!(
+                suffixes.get(suffix).and_then(JsonValue::as_str),
+                Some("helm"),
+                "icon theme should map {suffix} to the helm icon",
+            );
+        }
 
         let kubernetes_icon = icons
             .get("kubernetes")

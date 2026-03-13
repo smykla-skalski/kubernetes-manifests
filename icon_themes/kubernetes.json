@@ -10,7 +10,9 @@
         "k8s.yaml": "kubernetes",
         "k8s.yml": "kubernetes",
         "kubernetes.yaml": "kubernetes",
-        "kubernetes.yml": "kubernetes"
+        "kubernetes.yml": "kubernetes",
+        "helm.yaml": "helm",
+        "helm.yml": "helm"
       },
       "file_stems": {
         "kustomization": "kubernetes",
@@ -42,7 +44,9 @@
         "k8s.yaml": "kubernetes",
         "k8s.yml": "kubernetes",
         "kubernetes.yaml": "kubernetes",
-        "kubernetes.yml": "kubernetes"
+        "kubernetes.yml": "kubernetes",
+        "helm.yaml": "helm",
+        "helm.yml": "helm"
       },
       "file_stems": {
         "kustomization": "kubernetes",
