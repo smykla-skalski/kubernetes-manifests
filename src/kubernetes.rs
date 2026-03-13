@@ -476,11 +476,7 @@ mod tests {
             .as_object()
             .expect("icon theme should define named_directory_icons");
         for dir in ["templates", "charts"] {
-            assert_eq!(
-                dirs.get(dir).and_then(JsonValue::as_str),
-                Some("helm"),
-                "icon theme should map {dir} directory to helm icon",
-            );
+            assert_named_directory_icon(dirs, dir, "helm");
         }
         for dir in [
             "manifests",
@@ -491,11 +487,7 @@ mod tests {
             "overlays",
             "patches",
         ] {
-            assert_eq!(
-                dirs.get(dir).and_then(JsonValue::as_str),
-                Some("kubernetes"),
-                "icon theme should map {dir} directory to kubernetes icon",
-            );
+            assert_named_directory_icon(dirs, dir, "kubernetes");
         }
 
         let helm_icon = icons
@@ -541,6 +533,28 @@ mod tests {
                 "{name} should require an argument",
             );
         }
+    }
+
+    fn assert_named_directory_icon(
+        dirs: &serde_json::Map<String, JsonValue>,
+        dir: &str,
+        icon: &str,
+    ) {
+        let directory_icon = dirs
+            .get(dir)
+            .and_then(JsonValue::as_object)
+            .unwrap_or_else(|| panic!("icon theme should define {dir} as a directory icon object"));
+
+        assert_eq!(
+            directory_icon.get("collapsed").and_then(JsonValue::as_str),
+            Some(icon),
+            "icon theme should map collapsed {dir} directory icon to {icon}",
+        );
+        assert_eq!(
+            directory_icon.get("expanded").and_then(JsonValue::as_str),
+            Some(icon),
+            "icon theme should map expanded {dir} directory icon to {icon}",
+        );
     }
 
     #[test]

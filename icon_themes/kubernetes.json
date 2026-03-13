@@ -25,15 +25,15 @@
         "helmfile": "helm"
       },
       "named_directory_icons": {
-        "templates": "helm",
-        "charts": "helm",
-        "manifests": "kubernetes",
-        "k8s": "kubernetes",
-        "kubernetes": "kubernetes",
-        "deploy": "kubernetes",
-        "base": "kubernetes",
-        "overlays": "kubernetes",
-        "patches": "kubernetes"
+        "templates": { "collapsed": "helm", "expanded": "helm" },
+        "charts": { "collapsed": "helm", "expanded": "helm" },
+        "manifests": { "collapsed": "kubernetes", "expanded": "kubernetes" },
+        "k8s": { "collapsed": "kubernetes", "expanded": "kubernetes" },
+        "kubernetes": { "collapsed": "kubernetes", "expanded": "kubernetes" },
+        "deploy": { "collapsed": "kubernetes", "expanded": "kubernetes" },
+        "base": { "collapsed": "kubernetes", "expanded": "kubernetes" },
+        "overlays": { "collapsed": "kubernetes", "expanded": "kubernetes" },
+        "patches": { "collapsed": "kubernetes", "expanded": "kubernetes" }
       },
       "file_icons": {
         "kubernetes": {
@@ -66,15 +66,15 @@
         "helmfile": "helm"
       },
       "named_directory_icons": {
-        "templates": "helm",
-        "charts": "helm",
-        "manifests": "kubernetes",
-        "k8s": "kubernetes",
-        "kubernetes": "kubernetes",
-        "deploy": "kubernetes",
-        "base": "kubernetes",
-        "overlays": "kubernetes",
-        "patches": "kubernetes"
+        "templates": { "collapsed": "helm", "expanded": "helm" },
+        "charts": { "collapsed": "helm", "expanded": "helm" },
+        "manifests": { "collapsed": "kubernetes", "expanded": "kubernetes" },
+        "k8s": { "collapsed": "kubernetes", "expanded": "kubernetes" },
+        "kubernetes": { "collapsed": "kubernetes", "expanded": "kubernetes" },
+        "deploy": { "collapsed": "kubernetes", "expanded": "kubernetes" },
+        "base": { "collapsed": "kubernetes", "expanded": "kubernetes" },
+        "overlays": { "collapsed": "kubernetes", "expanded": "kubernetes" },
+        "patches": { "collapsed": "kubernetes", "expanded": "kubernetes" }
       },
       "file_icons": {
         "kubernetes": {
