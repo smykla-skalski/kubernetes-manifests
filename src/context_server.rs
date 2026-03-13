@@ -56,6 +56,12 @@ impl KubernetesContextServer {
             }
         }
 
+        if !env.iter().any(|(k, _)| k == "KUBE_CONTEXT") {
+            if let Some(context) = current_kubectl_context() {
+                env.push(("KUBE_CONTEXT".to_string(), context));
+            }
+        }
+
         zed::Command { command, args, env }
     }
 
@@ -137,6 +143,27 @@ fn remove_outdated_versions(prefix: &str, current_dir: &str) {
                 let _ = fs::remove_dir_all(name);
             }
         }
+    }
+}
+
+fn current_kubectl_context() -> Option<String> {
+    use zed::process::Command as ProcessCommand;
+
+    let output = ProcessCommand::new("kubectl")
+        .arg("config")
+        .arg("current-context")
+        .output()
+        .ok()?;
+
+    if output.status != Some(0) {
+        return None;
+    }
+
+    let context = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if context.is_empty() {
+        None
+    } else {
+        Some(context)
     }
 }
 
