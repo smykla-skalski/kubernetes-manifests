@@ -1,0 +1,10 @@
+#!/bin/sh
+#MISE description="Package the extension with zed-extension"
+#MISE depends=["tools:install:zed-extension"]
+set -eu
+
+cd "${MISE_CONFIG_ROOT:-$PWD}"
+scratch_dir="$(mktemp -d)"
+output_dir="$(mktemp -d)"
+trap 'rm -rf "$scratch_dir" "$output_dir"' EXIT
+exec "$TOOLS_BIN_DIR/zed-extension" --source-dir . --scratch-dir "$scratch_dir" --output-dir "$output_dir"

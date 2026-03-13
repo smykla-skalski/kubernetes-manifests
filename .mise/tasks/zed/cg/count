@@ -1,0 +1,11 @@
+#!/bin/sh
+#MISE description="Count Zed windows across all Spaces via CoreGraphics"
+#USAGE flag "--window-owner <window_owner>" help="Owner-name substring used by CoreGraphics" default="Zed Preview" env="ZED_WINDOW_OWNER"
+set -eu
+
+config_root="${MISE_CONFIG_ROOT:-$PWD}"
+window_owner="${usage_window_owner:-$ZED_WINDOW_OWNER}"
+
+exec env \
+  ZED_WINDOW_OWNER="$window_owner" \
+  swift "$config_root/.mise/zed_cg_runtime.swift" count --owner-substring "$window_owner"

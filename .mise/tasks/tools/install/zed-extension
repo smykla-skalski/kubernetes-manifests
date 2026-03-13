@@ -1,0 +1,104 @@
+#!/bin/sh
+#MISE description="Provision a local zed-extension CLI"
+set -eu
+
+mkdir -p "$TOOLS_DIR" "$TOOLS_BIN_DIR"
+target="$TOOLS_BIN_DIR/zed-extension"
+version_file="$TOOLS_BIN_DIR/zed-extension.version"
+
+case "$(uname -s)-$(uname -m)" in
+  Darwin-arm64) target_triple="aarch64-apple-darwin" ;;
+  Darwin-x86_64) target_triple="x86_64-apple-darwin" ;;
+  Linux-arm64|Linux-aarch64) target_triple="aarch64-unknown-linux-gnu" ;;
+  Linux-x86_64) target_triple="x86_64-unknown-linux-gnu" ;;
+  *)
+    echo "unsupported platform for zed-extension: $(uname -s)-$(uname -m)" >&2
+    exit 1
+    ;;
+esac
+
+expected_version="$ZED_EXTENSION_CLI_SHA/$target_triple"
+if [ -x "$target" ] && [ -f "$version_file" ] && [ "$(cat "$version_file")" = "$expected_version" ]; then
+  exit 0
+fi
+
+tmp_path="$target.download"
+download_prebuilt() {
+  url="$1"
+  attempt=1
+
+  while [ "$attempt" -le 3 ]; do
+    if command -v wget >/dev/null 2>&1; then
+      if wget --quiet -O "$tmp_path" "$url"; then
+        return 0
+      fi
+    elif curl -fsSL -o "$tmp_path" "$url"; then
+      return 0
+    fi
+
+    rm -f "$tmp_path"
+    sleep "$attempt"
+    attempt=$((attempt + 1))
+  done
+
+  return 1
+}
+
+probe_metal_toolchain() {
+  probe_dir="$(mktemp -d)"
+  cat >"$probe_dir/probe.metal" <<'EOF'
+#include <metal_stdlib>
+using namespace metal;
+kernel void noop(device float *data [[buffer(0)]], uint id [[thread_position_in_grid]]) {
+  data[id] = 0.0;
+}
+EOF
+
+  if xcrun -sdk macosx metal -c "$probe_dir/probe.metal" -o "$probe_dir/probe.air" >/dev/null 2>&1 &&
+    xcrun -sdk macosx metallib "$probe_dir/probe.air" -o "$probe_dir/probe.metallib" >/dev/null 2>&1; then
+    rm -rf "$probe_dir"
+    return 0
+  fi
+
+  rm -rf "$probe_dir"
+  return 1
+}
+
+download_url="${ZED_EXTENSION_CLI_URL:-}"
+if [ -z "$download_url" ]; then
+  case "$target_triple" in
+    # Zed's publish_extension_cli workflow currently uploads only the Linux x86_64 host build.
+    x86_64-unknown-linux-gnu)
+      download_url="https://zed-extension-cli.nyc3.digitaloceanspaces.com/$ZED_EXTENSION_CLI_SHA/$target_triple/zed-extension"
+      ;;
+  esac
+fi
+
+if [ -n "$download_url" ] && download_prebuilt "$download_url"; then
+  install -m 0755 "$tmp_path" "$target"
+  rm -f "$tmp_path"
+  printf '%s\n' "$expected_version" > "$version_file"
+  exit 0
+fi
+rm -f "$tmp_path"
+
+if [ -z "${ZED_REPO:-}" ] || [ ! -d "$ZED_REPO" ]; then
+  if [ -n "${ZED_EXTENSION_CLI_URL:-}" ]; then
+    echo "zed-extension download failed from ZED_EXTENSION_CLI_URL for $target_triple; set ZED_REPO to a local zed checkout to build the CLI from source" >&2
+  elif [ -n "$download_url" ]; then
+    echo "zed-extension download failed for $target_triple; set ZED_REPO to a local zed checkout to build the CLI from source" >&2
+  else
+    echo "no official prebuilt zed-extension binary is published for $target_triple; set ZED_REPO to a local zed checkout to build the CLI from source" >&2
+  fi
+  exit 1
+fi
+
+target_dir="$TOOLS_DIR/zed-target"
+if [ "$(uname -s)" = "Darwin" ] && ! probe_metal_toolchain; then
+  echo "metal toolchain is unavailable; run: xcodebuild -downloadComponent MetalToolchain" >&2
+  exit 1
+fi
+
+cargo build --release --package extension_cli --manifest-path "$ZED_REPO/Cargo.toml" --target-dir "$target_dir"
+install -m 0755 "$target_dir/release/zed-extension" "$target"
+printf '%s\n' "$expected_version" > "$version_file"

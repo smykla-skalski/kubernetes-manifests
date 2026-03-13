@@ -1,0 +1,18 @@
+#!/bin/sh
+#MISE description="Open Zed's Extensions page via the macOS menu bar"
+#USAGE flag "--process <process>" help="macOS Accessibility process name to inspect" default="zed" env="ZED_PROCESS"
+#USAGE flag "--app-menu <app_menu>" help="Application menu title in the macOS menu bar; leave empty to use the index" default="Zed"
+#USAGE flag "--app-menu-index <app_menu_index>" help="1-based menu bar item index fallback when the title does not match" default="2"
+set -eu
+
+config_root="${MISE_CONFIG_ROOT:-$PWD}"
+process="${usage_process:-$ZED_PROCESS}"
+app_menu="${usage_app_menu:-Zed}"
+app_menu_index="${usage_app_menu_index:-2}"
+
+exec env \
+  ZED_AX_PROCESS="$process" \
+  ZED_AX_APP_MENU="$app_menu" \
+  ZED_AX_APP_MENU_INDEX="$app_menu_index" \
+  ZED_AX_MENU_ITEM="Extensions" \
+  swift "$config_root/.mise/zed_ax_runtime.swift" menu-item

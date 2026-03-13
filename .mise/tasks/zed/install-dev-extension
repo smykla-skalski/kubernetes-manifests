@@ -1,0 +1,23 @@
+#!/bin/sh
+#MISE description="Install this repository as a dev extension in the isolated Zed profile"
+#MISE depends=["build:wasm"]
+#USAGE flag "--user-data-dir <user_data_dir>" help="Profile directory for the isolated Zed session" default="/tmp/zed-k8s-validation" env="ZED_USER_DATA_DIR"
+set -eu
+
+repo_root="${MISE_PROJECT_ROOT:-${MISE_CONFIG_ROOT:-$PWD}}"
+user_data_dir="${usage_user_data_dir:-$ZED_USER_DATA_DIR}"
+extensions_dir="$user_data_dir/extensions"
+installed_dir="$extensions_dir/installed"
+installed_extension_path="$installed_dir/kubernetes"
+legacy_installed_extension_path="$installed_dir/kubernetes-manifests"
+index_path="$extensions_dir/index.json"
+
+cd "$repo_root"
+mise run zed:prepare-profile --user-data-dir "$user_data_dir" >/dev/null
+mkdir -p "$installed_dir"
+rm -rf "$installed_extension_path" "$legacy_installed_extension_path"
+ln -s "$repo_root" "$installed_extension_path"
+rm -f "$index_path"
+mise run zed:refresh-runtime --user-data-dir "$user_data_dir" >/dev/null
+
+printf 'installed dev extension symlink: %s -> %s\n' "$installed_extension_path" "$repo_root"

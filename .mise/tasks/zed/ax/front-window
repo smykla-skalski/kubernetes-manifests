@@ -1,0 +1,14 @@
+#!/bin/sh
+#MISE description="Print the title of the focused Zed window via native macOS Accessibility"
+#USAGE flag "--process <process>" help="macOS Accessibility process name to inspect" default="zed" env="ZED_PROCESS"
+#USAGE flag "--window-owner <window_owner>" help="Owner-name substring for native AX app matching" default="Zed Preview" env="ZED_WINDOW_OWNER"
+set -eu
+
+config_root="${MISE_CONFIG_ROOT:-$PWD}"
+process="${usage_process:-$ZED_PROCESS}"
+window_owner="${usage_window_owner:-$ZED_WINDOW_OWNER}"
+
+exec env \
+  ZED_AX_PROCESS="$process" \
+  ZED_WINDOW_OWNER="$window_owner" \
+  swift "$config_root/.mise/zed_ax_runtime.swift" front-window

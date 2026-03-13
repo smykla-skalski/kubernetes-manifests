@@ -1,0 +1,10 @@
+#!/bin/sh
+#MISE description="Build extension.wasm for local dev-extension use"
+#MISE depends=["rust:bootstrap"]
+#MISE sources=["Cargo.toml", "Cargo.lock", "src/**/*.rs"]
+#MISE outputs=["extension.wasm"]
+set -eu
+
+cd "${MISE_CONFIG_ROOT:-$PWD}"
+RUSTC_WRAPPER="" cargo build --target wasm32-wasip2 --target-dir target
+install -m 0644 target/wasm32-wasip2/debug/kubernetes_manifests.wasm extension.wasm

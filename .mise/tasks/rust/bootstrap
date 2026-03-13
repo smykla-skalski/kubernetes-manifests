@@ -1,0 +1,17 @@
+#!/bin/sh
+#MISE description="Prime the local Rust toolchain for parallel tasks"
+set -eu
+
+cd "${MISE_CONFIG_ROOT:-$PWD}"
+
+cargo_home="${CARGO_HOME:-tmp/cargo}"
+rustup_home="${RUSTUP_HOME:-tmp/rustup}"
+
+mkdir -p "$cargo_home" "$rustup_home" "$rustup_home/downloads"
+
+rustup show active-toolchain >/dev/null
+cargo --version >/dev/null
+cargo fmt --version >/dev/null
+cargo clippy --version >/dev/null
+cargo nextest --version >/dev/null
+rustup target add wasm32-wasip2 >/dev/null

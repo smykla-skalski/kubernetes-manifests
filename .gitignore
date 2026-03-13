@@ -1,0 +1,13 @@
+# Build outputs
+/target
+/extension.wasm
+
+# Local tools and scratch space
+/tmp
+/ts_query_ls
+/zed-extension
+
+# Local machine state
+/.DS_Store
+/.env.local
+/.klaudiush/

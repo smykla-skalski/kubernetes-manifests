@@ -1,0 +1,29 @@
+#!/bin/sh
+#MISE description="Post a macOS key code to the chosen Zed process after resolving its AX window"
+#USAGE flag "--process <process>" help="macOS Accessibility process name to inspect" default="zed" env="ZED_PROCESS"
+#USAGE flag "--window-owner <window_owner>" help="Owner-name substring for native AX app matching" default="Zed Preview" env="ZED_WINDOW_OWNER"
+#USAGE flag "--window-index <window_index>" help="1-based window index when no title filter is provided" default="1" env="ZED_WINDOW_INDEX"
+#USAGE flag "--title-contains <title_contains>" help="Prefer the first window whose title contains this substring" env="ZED_WINDOW_TITLE_CONTAINS"
+#USAGE flag "--key-code <key_code>" help="macOS virtual key code to send" default="36"
+#USAGE flag "--modifiers <modifiers>" help="Comma-separated modifier list: command,shift,option,control,fn" default=""
+#USAGE flag "--activate-delay <activate_delay>" help="Seconds to wait before posting the key event" default="0.2"
+set -eu
+
+config_root="${MISE_CONFIG_ROOT:-$PWD}"
+process="${usage_process:-$ZED_PROCESS}"
+window_owner="${usage_window_owner:-$ZED_WINDOW_OWNER}"
+window_index="${usage_window_index:-1}"
+title_contains="${usage_title_contains-}"
+key_code="${usage_key_code:-36}"
+modifiers="${usage_modifiers-}"
+activate_delay="${usage_activate_delay:-0.2}"
+
+exec env \
+  ZED_AX_PROCESS="$process" \
+  ZED_WINDOW_OWNER="$window_owner" \
+  ZED_AX_WINDOW_INDEX="$window_index" \
+  ZED_AX_TITLE_CONTAINS="$title_contains" \
+  ZED_AX_KEY_CODE="$key_code" \
+  ZED_AX_MODIFIERS="$modifiers" \
+  ZED_AX_ACTIVATE_DELAY="$activate_delay" \
+  swift "$config_root/.mise/zed_ax_runtime.swift" key-code

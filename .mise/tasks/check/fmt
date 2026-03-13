@@ -1,0 +1,7 @@
+#!/bin/sh
+#MISE description="Check Rust formatting"
+#MISE depends=["rust:bootstrap"]
+set -eu
+
+cd "${MISE_CONFIG_ROOT:-$PWD}"
+exec cargo fmt --all -- --check "$@"

@@ -1,0 +1,3 @@
+service:
+  name: plain-yaml
+  port: 8080

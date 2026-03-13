@@ -1,0 +1,9 @@
+#!/bin/sh
+#MISE description="Open Zed Preview in a new isolated stateless workspace window and keep logs on stdout"
+#USAGE flag "--user-data-dir <user_data_dir>" help="Profile directory for the isolated Zed session" default="/tmp/zed-k8s-validation" env="ZED_USER_DATA_DIR"
+#USAGE arg "<path>" default="."
+set -eu
+
+user_data_dir="${usage_user_data_dir:-$ZED_USER_DATA_DIR}"
+target="${usage_path:-.}"
+exec env KUBERNETES_MANIFESTS_ZED_NEW_WINDOW=1 mise run zed:foreground --user-data-dir "$user_data_dir" "$target"

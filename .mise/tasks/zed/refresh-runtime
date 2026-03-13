@@ -1,0 +1,18 @@
+#!/bin/sh
+#MISE description="Move aside the isolated extension runtime cache so the next launch reinstalls tools"
+#USAGE flag "--user-data-dir <user_data_dir>" help="Profile directory for the isolated Zed session" default="/tmp/zed-k8s-validation" env="ZED_USER_DATA_DIR"
+set -eu
+
+user_data_dir="${usage_user_data_dir:-$ZED_USER_DATA_DIR}"
+work_dir="$user_data_dir/extensions/work/kubernetes"
+legacy_work_root="$user_data_dir/extensions/work"
+if [ -d "$legacy_work_root" ]; then
+  find "$legacy_work_root" -maxdepth 1 -name 'kubernetes-manifests*' -exec rm -rf {} +
+fi
+if [ ! -d "$work_dir" ]; then
+  exit 0
+fi
+
+archive_path="$work_dir.stale.$(date +%s)"
+mv "$work_dir" "$archive_path"
+printf 'moved runtime cache to %s\n' "$archive_path"

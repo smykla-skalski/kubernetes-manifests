@@ -1,0 +1,6 @@
+#!/bin/sh
+#MISE description="Run the automated test suite"
+#MISE depends=["check:test", "check:nextest"]
+set -eu
+
+:

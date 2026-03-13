@@ -1,0 +1,28 @@
+#!/bin/sh
+#MISE description="Download ts_query_ls into the shared temporary tools directory"
+set -eu
+
+mkdir -p "$TOOLS_DIR" "$TOOLS_BIN_DIR"
+target="$TOOLS_BIN_DIR/ts_query_ls"
+version_file="$TOOLS_BIN_DIR/ts_query_ls.version"
+if [ -x "$target" ] && [ -f "$version_file" ] && [ "$(cat "$version_file")" = "$TS_QUERY_LS_VERSION" ]; then
+  exit 0
+fi
+
+case "$(uname -s)-$(uname -m)" in
+  Darwin-arm64) asset="ts_query_ls-aarch64-apple-darwin.tar.gz" ;;
+  Darwin-x86_64) asset="ts_query_ls-x86_64-apple-darwin.tar.gz" ;;
+  Linux-arm64|Linux-aarch64) asset="ts_query_ls-aarch64-unknown-linux-gnu.tar.gz" ;;
+  Linux-x86_64) asset="ts_query_ls-x86_64-unknown-linux-gnu.tar.gz" ;;
+  *)
+    echo "unsupported platform for ts_query_ls: $(uname -s)-$(uname -m)" >&2
+    exit 1
+    ;;
+esac
+
+tmp_dir="$(mktemp -d "$TOOLS_DIR/ts_query_ls.XXXXXX")"
+trap 'rm -rf "$tmp_dir"' 0 INT TERM HUP
+curl -fsSL -o "$tmp_dir/$asset" "https://github.com/ribru17/ts_query_ls/releases/download/$TS_QUERY_LS_VERSION/$asset"
+tar -xzf "$tmp_dir/$asset" -C "$tmp_dir"
+install -m 0755 "$tmp_dir/ts_query_ls" "$target"
+printf '%s\n' "$TS_QUERY_LS_VERSION" > "$version_file"

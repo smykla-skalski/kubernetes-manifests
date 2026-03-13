@@ -1,0 +1,11 @@
+#!/bin/sh
+#MISE description="List the macOS menu bar items exposed by Zed via native AX"
+#USAGE flag "--process <process>" help="macOS Accessibility process name to inspect" default="zed" env="ZED_PROCESS"
+set -eu
+
+config_root="${MISE_CONFIG_ROOT:-$PWD}"
+process="${usage_process:-$ZED_PROCESS}"
+
+exec env \
+  ZED_AX_PROCESS="$process" \
+  swift "$config_root/.mise/zed_ax_runtime.swift" menu-bar-items

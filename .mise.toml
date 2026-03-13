@@ -1,0 +1,11 @@
+[env]
+_.file = ".env.local"
+CARGO_HOME = "tmp/cargo"
+RUSTUP_HOME = "tmp/rustup"
+TOOLS_DIR = "tmp/tools"
+TOOLS_BIN_DIR = "tmp/tools/bin"
+TS_QUERY_LS_VERSION = "v3.15.1"
+ZED_EXTENSION_CLI_SHA = "03d8e9aee95ea6117d75a48bcac2e19241f6e667"
+ZED_PROCESS = "zed"
+ZED_WINDOW_OWNER = "Zed Preview"
+ZED_USER_DATA_DIR = "tmp/zed-validation"

@@ -1,0 +1,6 @@
+#!/bin/sh
+#MISE description="Run strict Swift formatting diagnostics for the mise helper runtimes"
+set -eu
+
+cd "${MISE_CONFIG_ROOT:-$PWD}"
+exec swift format lint --configuration .swift-format --parallel --recursive --strict .mise

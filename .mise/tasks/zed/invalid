@@ -1,0 +1,7 @@
+#!/bin/sh
+#MISE description="Open the invalid fixture in the isolated Zed profile"
+#USAGE flag "--user-data-dir <user_data_dir>" help="Profile directory for the isolated Zed session" default="/tmp/zed-k8s-validation" env="ZED_USER_DATA_DIR"
+set -eu
+
+user_data_dir="${usage_user_data_dir:-$ZED_USER_DATA_DIR}"
+exec mise run zed:open --user-data-dir "$user_data_dir" fixtures/invalid/invalid-service.k8s.yaml
