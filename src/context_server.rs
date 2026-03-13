@@ -1,4 +1,4 @@
-use std::fs;
+use std::{env, fs};
 
 use serde_json::Value as JsonValue;
 use zed_extension_api::{
@@ -48,6 +48,12 @@ impl KubernetesContextServer {
             push_env_if_set(&mut env, settings, "kubeconfig", "KUBECONFIG");
             push_env_if_set(&mut env, settings, "context", "KUBE_CONTEXT");
             push_env_if_set(&mut env, settings, "namespace", "KUBE_NAMESPACE");
+        }
+
+        if !env.iter().any(|(k, _)| k == "KUBECONFIG") {
+            if let Some(default) = default_kubeconfig_path() {
+                env.push(("KUBECONFIG".to_string(), default));
+            }
         }
 
         zed::Command { command, args, env }
@@ -132,6 +138,16 @@ fn remove_outdated_versions(prefix: &str, current_dir: &str) {
             }
         }
     }
+}
+
+fn default_kubeconfig_path() -> Option<String> {
+    let (os, _) = zed::current_platform();
+    let home_var = match os {
+        Os::Windows => "USERPROFILE",
+        _ => "HOME",
+    };
+    let home = env::var(home_var).ok()?;
+    Some(format!("{home}/.kube/config"))
 }
 
 fn push_env_if_set(
