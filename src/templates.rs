@@ -20,11 +20,11 @@ const TEMPLATES: &[(&str, &str)] = &[
     ("StatefulSet", STATEFULSET),
 ];
 
-pub(crate) fn resource_kinds() -> impl Iterator<Item = &'static str> {
+pub fn resource_kinds() -> impl Iterator<Item = &'static str> {
     TEMPLATES.iter().map(|(kind, _)| *kind)
 }
 
-pub(crate) fn template_for_kind(kind: &str) -> Option<&'static str> {
+pub fn template_for_kind(kind: &str) -> Option<&'static str> {
     TEMPLATES
         .iter()
         .find(|(k, _)| *k == kind)

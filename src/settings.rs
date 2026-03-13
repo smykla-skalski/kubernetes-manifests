@@ -29,7 +29,7 @@ fn default_schemas() -> Value {
     })
 }
 
-pub(crate) fn default_workspace_configuration() -> Value {
+pub fn default_workspace_configuration() -> Value {
     json!({
         "[yaml]": {
             "editor.tabSize": 2
@@ -43,7 +43,7 @@ pub(crate) fn default_workspace_configuration() -> Value {
     })
 }
 
-pub(crate) fn merged_workspace_configuration(
+pub fn merged_workspace_configuration(
     user_settings: Option<Value>,
     worktree_root: Option<&str>,
     home_dir: Option<&str>,

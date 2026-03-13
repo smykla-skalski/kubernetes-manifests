@@ -6,24 +6,24 @@ use zed_extension_api::{
     LanguageServerId, Result,
 };
 
-pub(crate) const SERVER_NAME: &str = "kubernetes-language-server";
-pub(crate) const BINARY_NAME: &str = "yaml-language-server";
+pub const SERVER_NAME: &str = "kubernetes-language-server";
+pub const BINARY_NAME: &str = "yaml-language-server";
 const PACKAGE_NAME: &str = "yaml-language-server";
 const PACKAGE_VERSION: &str = "1.21.0";
 const SERVER_PATH: &str = "node_modules/yaml-language-server/bin/yaml-language-server";
 
-pub(crate) struct KubernetesLanguageServer {
+pub struct KubernetesLanguageServer {
     cached_server_script_path: Option<String>,
 }
 
 impl KubernetesLanguageServer {
-    pub(crate) fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             cached_server_script_path: None,
         }
     }
 
-    pub(crate) fn language_server_command(
+    pub fn language_server_command(
         &mut self,
         language_server_id: &LanguageServerId,
         worktree: &zed::Worktree,
@@ -133,7 +133,11 @@ fn merged_env(
     base_env
 }
 
-fn binary_command(command: String, args: Vec<String>, env: Vec<(String, String)>) -> zed::Command {
+const fn binary_command(
+    command: String,
+    args: Vec<String>,
+    env: Vec<(String, String)>,
+) -> zed::Command {
     zed::Command { command, args, env }
 }
 
