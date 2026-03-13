@@ -355,6 +355,14 @@ mod tests {
         read_repo_file(relative_path)
     }
 
+    /// Simulates Zed's content window for `first_line_pattern` detection.
+    /// Zed passes only the first line of a buffer (up to 256 columns) via
+    /// `content.clip_point(Point::new(0, 256), Bias::Left)`.
+    fn first_line_window(content: &str) -> &str {
+        let first_line_end = content.find('\n').unwrap_or(content.len());
+        &content[..first_line_end.min(256)]
+    }
+
     fn read_icon_theme() -> JsonValue {
         let path = repo_root().join("icon_themes/kubernetes.json");
         let source = read_repo_file("icon_themes/kubernetes.json");
@@ -391,28 +399,41 @@ mod tests {
     }
 
     #[test]
-    fn first_line_pattern_detects_kubernetes_headers_in_plain_yaml() {
+    fn first_line_pattern_matches_apiversion_on_first_line() {
         let pattern = kubernetes_first_line_pattern();
 
+        // Zed only passes the first line (up to 256 columns) to
+        // first_line_pattern via clip_point(Point::new(0, 256)).
+        // Test against the same window Zed provides.
         assert!(
-            pattern.is_match(&read_fixture("fixtures/valid/plain-deployment.yaml")),
-            "plain deployment yaml should auto-detect as Kubernetes",
+            pattern.is_match(first_line_window(&read_fixture(
+                "fixtures/valid/plain-deployment.yaml"
+            ))),
+            "file starting with apiVersion should match",
         );
         assert!(
-            pattern.is_match(&read_fixture("fixtures/valid/plain-kind-first.yaml")),
-            "kind/apiVersion in reverse order should auto-detect as Kubernetes",
+            !pattern.is_match(first_line_window(&read_fixture(
+                "fixtures/valid/plain-kind-first.yaml"
+            ))),
+            "file starting with a comment should not match (apiVersion not on first line)",
         );
         assert!(
-            pattern.is_match(&read_fixture("fixtures/valid/plain-multi-document.yaml")),
-            "plain multi-document yaml should auto-detect as Kubernetes",
+            !pattern.is_match(first_line_window(&read_fixture(
+                "fixtures/valid/plain-multi-document.yaml"
+            ))),
+            "file starting with a comment should not match (apiVersion not on first line)",
         );
         assert!(
-            !pattern.is_match(&read_fixture("fixtures/invalid/plain-non-kubernetes.yaml")),
-            "plain non-Kubernetes yaml should not auto-detect as Kubernetes",
+            !pattern.is_match(first_line_window(&read_fixture(
+                "fixtures/invalid/plain-non-kubernetes.yaml"
+            ))),
+            "non-Kubernetes yaml should not match",
         );
         assert!(
-            !pattern.is_match(&read_fixture("fixtures/invalid/plain-missing-kind.yaml")),
-            "plain yaml missing kind should not auto-detect as Kubernetes",
+            pattern.is_match(first_line_window(&read_fixture(
+                "fixtures/invalid/plain-missing-kind.yaml"
+            ))),
+            "apiVersion on first line should match even without kind (detection is best-effort)",
         );
     }
 
