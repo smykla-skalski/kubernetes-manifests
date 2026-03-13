@@ -256,7 +256,7 @@ zed::register_extension!(KubernetesExtension);
 mod tests {
     use regex::Regex;
     use serde_json::Value as JsonValue;
-    use std::{fs, path::PathBuf};
+    use std::{collections::HashMap, fs, path::PathBuf};
     use toml::Value as TomlValue;
 
     fn repo_root() -> PathBuf {
@@ -267,8 +267,7 @@ mod tests {
         let path = repo_root().join("extension.toml");
         let source = fs::read_to_string(&path)
             .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
-        source
-            .parse::<TomlValue>()
+        toml::from_str(&source)
             .unwrap_or_else(|error| panic!("failed to parse {}: {error}", path.display()))
     }
 
@@ -276,8 +275,7 @@ mod tests {
         let path = repo_root().join("languages/kubernetes/config.toml");
         let source = fs::read_to_string(&path)
             .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
-        source
-            .parse::<TomlValue>()
+        toml::from_str(&source)
             .unwrap_or_else(|error| panic!("failed to parse {}: {error}", path.display()))
     }
 
@@ -472,5 +470,41 @@ mod tests {
                 .and_then(TomlValue::as_bool),
             Some(true),
         );
+    }
+
+    #[test]
+    fn snippets_produce_valid_yaml() {
+        let path = repo_root().join("snippets/kubernetes.json");
+        let source = fs::read_to_string(&path)
+            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
+        let snippets: HashMap<String, JsonValue> = serde_json::from_str(&source)
+            .unwrap_or_else(|error| panic!("failed to parse {}: {error}", path.display()));
+
+        let tabstop = Regex::new(r"\$\{\d+:([^}]*)\}").unwrap();
+        let bare_ref = Regex::new(r"\$\d+").unwrap();
+
+        for (name, snippet) in &snippets {
+            let body = snippet["body"]
+                .as_array()
+                .unwrap_or_else(|| panic!("snippet {name} should have a body array"));
+
+            let yaml_text: String = body
+                .iter()
+                .filter_map(|line| line.as_str())
+                .map(|line| {
+                    let line = tabstop.replace_all(line, "$1");
+                    bare_ref.replace_all(&line, "placeholder").into_owned()
+                })
+                .filter(|line| line.trim() != "placeholder")
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            let result: Result<serde_yml::Value, _> = serde_yml::from_str(&yaml_text);
+            assert!(
+                result.is_ok(),
+                "snippet {name} produces invalid YAML: {}",
+                result.unwrap_err(),
+            );
+        }
     }
 }
