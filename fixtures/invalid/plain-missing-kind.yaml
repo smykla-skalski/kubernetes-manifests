@@ -1,0 +1,5 @@
+apiVersion: apps/v1
+metadata:
+  name: missing-kind
+spec:
+  replicas: 1

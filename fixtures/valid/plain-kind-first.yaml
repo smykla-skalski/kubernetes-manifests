@@ -1,0 +1,9 @@
+# comment before header
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: plain-service
+spec:
+  selector:
+    app: plain-service

@@ -1,0 +1,11 @@
+# comment before document
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: first
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: second

@@ -2,18 +2,18 @@
 
 Kubernetes is a standalone Zed extension that adds a distinct `Kubernetes` language mode on top of the same Tree-sitter YAML grammar revision Zed uses for built-in YAML support, plus `yaml-language-server`.
 
-The extension only auto-detects conservative Kubernetes-specific file names: `*.k8s.yaml`, `*.k8s.yml`, `*.kubernetes.yaml`, and `*.kubernetes.yml`. Plain `.yaml` and `.yml` files stay on Zed's built-in YAML support unless you manually switch the whole buffer to `Kubernetes`.
+The extension auto-detects Kubernetes in two ways: by Kubernetes-specific file names such as `*.k8s.yaml` and `*.kubernetes.yml`, and by plain `.yaml` or `.yml` document headers when the opening document block contains both top-level `apiVersion:` and `kind:` keys. That detection is intentionally front-loaded to the opening content window Zed exposes to extensions, so files that only mention those keys much later in the buffer can still stay on built-in YAML.
 
 Markdown fenced code blocks that use the `kubernetes` info string get Kubernetes syntax highlighting. Full Kubernetes LSP inside arbitrary embedded regions is not available from a standalone extension because Zed attaches language servers at the buffer level.
 
-Use the Settings Editor or project `settings.json` to configure the language server id `kubernetes-yaml-language-server`. The extension merges your `lsp.kubernetes-yaml-language-server.settings` on top of its default Kubernetes schema association.
+Use the Settings Editor or project `settings.json` to configure the language server id `kubernetes-language-server`. The extension merges your `lsp.kubernetes-language-server.settings` on top of its default Kubernetes schema association.
 
-By default, that schema association is restricted to conservative Kubernetes-specific suffixes such as `*.k8s.yaml` and `*.kubernetes.yml`. If you want schema validation on non-standard template file names, add your own `lsp.kubernetes-yaml-language-server.settings.yaml.schemas` override.
+By default, the bundled schema association still targets Kubernetes-specific suffixes such as `*.k8s.yaml` and `*.kubernetes.yml`. If you want schema validation on non-standard template file names, add your own `lsp.kubernetes-language-server.settings.yaml.schemas` override.
 
 ```json
 {
   "lsp": {
-    "kubernetes-yaml-language-server": {
+    "kubernetes-language-server": {
       "binary": {
         "path": "/opt/homebrew/bin/yaml-language-server",
         "arguments": ["--stdio"],
@@ -32,6 +32,8 @@ By default, that schema association is restricted to conservative Kubernetes-spe
   }
 }
 ```
+
+The repo also ships a small optional icon theme overlay at `icon_themes/kubernetes.json`. Select the `Kubernetes` icon theme in Zed if you want Kubernetes-specific file-name matches and the language picker to use the bundled Kubernetes icon instead of YAML's default icon. Generic plain `.yaml` file icons still follow the active file icon theme.
 
 ## Local development
 
@@ -214,8 +216,11 @@ Troubleshooting notes:
 6. If the isolated validation profile already has this dev extension installed, run `mise run zed:sync-extension` before reopening Zed.
 7. Open `fixtures/valid/deployment.k8s.yaml` and confirm Zed auto-detects the `Kubernetes` language.
 8. In `fixtures/valid/deployment.k8s.yaml`, confirm hover, completion, outline, formatting, and diagnostics all behave correctly.
-9. Open `fixtures/valid/multi-document.k8s.yaml` and confirm the same Kubernetes behavior still works for multiple YAML documents.
-10. Open `fixtures/invalid/invalid-service.k8s.yaml` and confirm diagnostics are reported.
-11. Open `fixtures/embedded/example.md` and confirm the fenced `kubernetes` code block gets Kubernetes syntax highlighting.
-12. Open `fixtures/templates/deployment.tpl`, manually select the `Kubernetes` language for the whole buffer, and confirm the manual whole-buffer workflow behaves as expected for a template-oriented file.
-13. Open `fixtures/valid/plain.yaml` and confirm it still uses Zed's built-in YAML language instead of this extension.
+9. Open `fixtures/valid/plain-deployment.yaml` and confirm the plain `.yaml` file auto-detects as `Kubernetes` from its `apiVersion` and `kind` header.
+10. Open `fixtures/valid/plain-multi-document.yaml` and confirm the same header-based Kubernetes detection still works for multiple YAML documents.
+11. Open `fixtures/invalid/plain-non-kubernetes.yaml` and confirm it stays on built-in YAML.
+12. Open `fixtures/invalid/invalid-service.k8s.yaml` and confirm diagnostics are reported.
+13. Open `fixtures/embedded/example.md` and confirm the fenced `kubernetes` code block gets Kubernetes syntax highlighting.
+14. Open `fixtures/templates/deployment.tpl`, manually select the `Kubernetes` language for the whole buffer, and confirm the manual whole-buffer workflow behaves as expected for a template-oriented file.
+15. Confirm the language-server status UI shows `Kubernetes Language Server`.
+16. Select the bundled `Kubernetes` icon theme and confirm `*.k8s.yaml` or `*.kubernetes.yml` files use the Kubernetes icon in the language picker instead of the YAML fallback.

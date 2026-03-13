@@ -6,17 +6,17 @@ use zed_extension_api::{
     LanguageServerId, Result,
 };
 
-pub(crate) const SERVER_NAME: &str = "kubernetes-yaml-language-server";
+pub(crate) const SERVER_NAME: &str = "kubernetes-language-server";
 pub(crate) const BINARY_NAME: &str = "yaml-language-server";
 const PACKAGE_NAME: &str = "yaml-language-server";
 const PACKAGE_VERSION: &str = "1.19.2";
 const SERVER_PATH: &str = "node_modules/yaml-language-server/bin/yaml-language-server";
 
-pub(crate) struct KubernetesYamlLanguageServer {
+pub(crate) struct KubernetesLanguageServer {
     cached_server_script_path: Option<String>,
 }
 
-impl KubernetesYamlLanguageServer {
+impl KubernetesLanguageServer {
     pub(crate) fn new() -> Self {
         Self {
             cached_server_script_path: None,

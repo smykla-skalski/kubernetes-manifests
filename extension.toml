@@ -6,11 +6,11 @@ schema_version = 1
 authors = ["Bart Smykla <bartek@smykla.com>"]
 repository = "https://github.com/smykla-skalski/kubernetes-manifests"
 
-[language_servers.kubernetes-yaml-language-server]
-name = "Kubernetes YAML Language Server"
+[language_servers.kubernetes-language-server]
+name = "Kubernetes Language Server"
 language = "Kubernetes"
 
-[language_servers.kubernetes-yaml-language-server.language_ids]
+[language_servers.kubernetes-language-server.language_ids]
 "Kubernetes" = "yaml"
 
 [grammars.yaml]

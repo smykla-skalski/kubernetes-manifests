@@ -1,0 +1,37 @@
+{
+  "$schema": "https://zed.dev/schema/icon_themes/v0.3.0.json",
+  "name": "Kubernetes",
+  "author": "Bart Smykla",
+  "themes": [
+    {
+      "name": "Kubernetes",
+      "appearance": "dark",
+      "file_suffixes": {
+        "k8s.yaml": "kubernetes",
+        "k8s.yml": "kubernetes",
+        "kubernetes.yaml": "kubernetes",
+        "kubernetes.yml": "kubernetes"
+      },
+      "file_icons": {
+        "kubernetes": {
+          "path": "./icons/kubernetes.svg"
+        }
+      }
+    },
+    {
+      "name": "Kubernetes",
+      "appearance": "light",
+      "file_suffixes": {
+        "k8s.yaml": "kubernetes",
+        "k8s.yml": "kubernetes",
+        "kubernetes.yaml": "kubernetes",
+        "kubernetes.yml": "kubernetes"
+      },
+      "file_icons": {
+        "kubernetes": {
+          "path": "./icons/kubernetes.svg"
+        }
+      }
+    }
+  ]
+}

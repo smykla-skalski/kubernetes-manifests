@@ -10,7 +10,7 @@ Run `mise trust .mise.toml` once after cloning. Use `mise run test` for Rust tes
 
 ## Coding Style & Naming Conventions
 
-Follow `rustfmt` and keep Clippy clean with `-D warnings`. Prefer small, explicit helpers over clever branching. Avoid `unwrap()` in production code. Keep Kubernetes-specific detection conservative: plain `.yaml` files should not be reclassified by default. Swift helper files under `.mise/` use `.swift-format` with 2-space indentation and strict linting. Use descriptive task and fixture names such as `deployment.k8s.yaml` or `zed:install-dev-extension`.
+Follow `rustfmt` and keep Clippy clean with `-D warnings`. Prefer small, explicit helpers over clever branching. Avoid `unwrap()` in production code. Plain `.yaml` detection is allowed here when the opening document block clearly looks like a Kubernetes manifest, so keep detection rules explicit and test-backed. Swift helper files under `.mise/` use `.swift-format` with 2-space indentation and strict linting. Use descriptive task and fixture names such as `deployment.k8s.yaml` or `zed:install-dev-extension`.
 
 ## Testing Guidelines
 
