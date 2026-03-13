@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title>Helm</title>
+  <circle cx="64" cy="64" r="52" fill="#0f1689"/>
+  <circle cx="64" cy="64" r="16" fill="#ffffff"/>
+  <line x1="64" y1="20" x2="64" y2="48" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
+  <line x1="64" y1="80" x2="64" y2="108" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
+  <line x1="26" y1="42" x2="50" y2="56" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
+  <line x1="78" y1="72" x2="102" y2="86" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
+  <line x1="26" y1="86" x2="50" y2="72" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
+  <line x1="78" y1="56" x2="102" y2="42" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
+</svg>

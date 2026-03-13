@@ -12,9 +12,26 @@
         "kubernetes.yaml": "kubernetes",
         "kubernetes.yml": "kubernetes"
       },
+      "file_stems": {
+        "kustomization": "kubernetes",
+        "Chart": "helm",
+        "values": "helm",
+        "helmfile": "helm"
+      },
+      "named_directory_icons": {
+        "templates": "helm",
+        "charts": "helm",
+        "manifests": "kubernetes",
+        "k8s": "kubernetes",
+        "kubernetes": "kubernetes",
+        "deploy": "kubernetes"
+      },
       "file_icons": {
         "kubernetes": {
           "path": "./icons/kubernetes.svg"
+        },
+        "helm": {
+          "path": "./icons/helm.svg"
         }
       }
     },
@@ -27,9 +44,26 @@
         "kubernetes.yaml": "kubernetes",
         "kubernetes.yml": "kubernetes"
       },
+      "file_stems": {
+        "kustomization": "kubernetes",
+        "Chart": "helm",
+        "values": "helm",
+        "helmfile": "helm"
+      },
+      "named_directory_icons": {
+        "templates": "helm",
+        "charts": "helm",
+        "manifests": "kubernetes",
+        "k8s": "kubernetes",
+        "kubernetes": "kubernetes",
+        "deploy": "kubernetes"
+      },
       "file_icons": {
         "kubernetes": {
           "path": "./icons/kubernetes.svg"
+        },
+        "helm": {
+          "path": "./icons/helm.svg"
         }
       }
     }
