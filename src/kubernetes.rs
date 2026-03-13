@@ -659,6 +659,23 @@ mod tests {
         }
     }
 
+    #[test]
+    fn extension_manifest_declares_snippets() {
+        let manifest = read_extension_manifest();
+        let snippets = manifest
+            .get("snippets")
+            .and_then(TomlValue::as_str)
+            .expect("extension manifest should declare snippets path");
+
+        assert!(
+            snippets.contains("kubernetes.json"),
+            "snippets path should point to kubernetes.json",
+        );
+
+        let path = repo_root().join(snippets.trim_start_matches("./"));
+        assert!(path.exists(), "snippets file should exist at {snippets}");
+    }
+
     fn assert_named_directory_icon(
         dirs: &serde_json::Map<String, JsonValue>,
         dir: &str,
