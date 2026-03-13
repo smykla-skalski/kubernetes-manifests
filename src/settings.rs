@@ -15,6 +15,20 @@ fn default_schema_globs() -> Value {
     ])
 }
 
+fn default_schemas() -> Value {
+    json!({
+        "kubernetes": default_schema_globs(),
+        "https://json.schemastore.org/kustomization.json": [
+            "kustomization.yaml",
+            "kustomization.yml"
+        ],
+        "https://json.schemastore.org/chart.json": [
+            "Chart.yaml",
+            "Chart.yml"
+        ]
+    })
+}
+
 pub(crate) fn default_workspace_configuration() -> Value {
     json!({
         "[yaml]": {
@@ -24,9 +38,7 @@ pub(crate) fn default_workspace_configuration() -> Value {
             "format": {
                 "enable": true
             },
-            "schemas": {
-                "kubernetes": default_schema_globs()
-            }
+            "schemas": default_schemas()
         }
     })
 }
@@ -122,6 +134,21 @@ mod tests {
         assert_eq!(
             configuration["yaml"]["schemas"]["kubernetes"],
             default_schema_globs(),
+        );
+    }
+
+    #[test]
+    fn default_config_contains_kustomization_and_chart_schemas() {
+        let configuration = default_workspace_configuration();
+        let schemas = configuration["yaml"]["schemas"].as_object().unwrap();
+
+        assert!(
+            schemas.contains_key("https://json.schemastore.org/kustomization.json"),
+            "default config should include kustomization schema",
+        );
+        assert!(
+            schemas.contains_key("https://json.schemastore.org/chart.json"),
+            "default config should include chart schema",
         );
     }
 
