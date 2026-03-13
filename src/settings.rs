@@ -29,20 +29,57 @@ fn default_schemas() -> Value {
     })
 }
 
+fn default_custom_tags() -> Value {
+    json!([
+        "!Ref",
+        "!Sub",
+        "!Sub sequence",
+        "!GetAtt",
+        "!GetAtt sequence",
+        "!Fn::Sub",
+        "!Fn::Sub sequence",
+        "!FindInMap sequence",
+        "!Join sequence",
+        "!Select sequence",
+        "!Split sequence",
+        "!If sequence",
+        "!Not sequence",
+        "!Equals sequence",
+        "!And sequence",
+        "!Or sequence",
+        "!Condition",
+        "!Base64",
+        "!Cidr sequence",
+        "!ImportValue",
+        "!Transform mapping",
+    ])
+}
+
 pub fn default_workspace_configuration() -> Value {
     json!({
         "[yaml]": {
             "editor.tabSize": 2
         },
         "yaml": {
+            "yamlVersion": "1.1",
             "schemaStore": {
                 "enable": true
             },
             "validate": true,
             "hover": true,
+            "hoverAnchor": true,
             "completion": true,
+            "disableDefaultProperties": true,
+            "maxItemsComputed": 10000,
+            "customTags": default_custom_tags(),
+            "style": {
+                "flowMapping": "allow",
+                "flowSequence": "allow"
+            },
             "format": {
-                "enable": true
+                "enable": true,
+                "bracketSpacing": true,
+                "printWidth": 120
             },
             "schemas": default_schemas()
         }
@@ -158,6 +195,40 @@ mod tests {
         assert_eq!(configuration["yaml"]["validate"], true);
         assert_eq!(configuration["yaml"]["hover"], true);
         assert_eq!(configuration["yaml"]["completion"], true);
+    }
+
+    #[test]
+    fn default_config_uses_yaml_1_1_for_kubernetes_compat() {
+        let configuration = default_workspace_configuration();
+
+        assert_eq!(configuration["yaml"]["yamlVersion"], "1.1");
+    }
+
+    #[test]
+    fn default_config_sets_kubernetes_friendly_defaults() {
+        let configuration = default_workspace_configuration();
+
+        assert_eq!(configuration["yaml"]["hoverAnchor"], true);
+        assert_eq!(configuration["yaml"]["disableDefaultProperties"], true);
+        assert_eq!(configuration["yaml"]["maxItemsComputed"], 10000);
+        assert_eq!(configuration["yaml"]["style"]["flowMapping"], "allow");
+        assert_eq!(configuration["yaml"]["style"]["flowSequence"], "allow");
+        assert_eq!(configuration["yaml"]["format"]["bracketSpacing"], true);
+        assert_eq!(configuration["yaml"]["format"]["printWidth"], 120);
+    }
+
+    #[test]
+    fn default_config_includes_custom_tags() {
+        let configuration = default_workspace_configuration();
+        let tags = configuration["yaml"]["customTags"]
+            .as_array()
+            .expect("customTags should be an array");
+
+        assert!(!tags.is_empty(), "customTags should not be empty");
+        assert!(
+            tags.contains(&json!("!Ref")),
+            "customTags should include !Ref",
+        );
     }
 
     #[test]
