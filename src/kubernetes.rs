@@ -9,7 +9,7 @@ use settings::merged_workspace_configuration;
 use templates::{resource_kinds, template_for_kind};
 use zed_extension_api::{
     self as zed,
-    lsp::{Completion, Symbol},
+    lsp::{Completion, CompletionKind, Symbol},
     serde_json::Value as JsonValue,
     settings::LspSettings,
     CodeLabel, CodeLabelSpan, ContextServerConfiguration, ContextServerId, KeyValueStore,
@@ -157,11 +157,18 @@ impl zed::Extension for KubernetesExtension {
         let code = format!("{label}: {detail}");
         let label_len = label.len();
 
+        let detail_highlight = match completion.kind.as_ref() {
+            Some(CompletionKind::Property) => "property",
+            Some(CompletionKind::Field | CompletionKind::Variable) => "attribute",
+            Some(CompletionKind::Keyword) => "keyword",
+            _ => "comment",
+        };
+
         Some(CodeLabel {
             spans: vec![
                 CodeLabelSpan::code_range(0..label_len),
                 CodeLabelSpan::literal(": ", None),
-                CodeLabelSpan::literal(detail, Some("comment".to_string())),
+                CodeLabelSpan::literal(detail, Some(detail_highlight.to_string())),
             ],
             filter_range: (0..label_len).into(),
             code,
