@@ -84,7 +84,14 @@ impl KubernetesLanguageServer {
 
             match zed::npm_install_package(PACKAGE_NAME, PACKAGE_VERSION) {
                 Ok(()) => {}
-                Err(_error) if file_exists(&absolute_server_path) => {}
+                Err(error) if file_exists(&absolute_server_path) => {
+                    zed::set_language_server_installation_status(
+                        language_server_id,
+                        &zed::LanguageServerInstallationStatus::Failed(format!(
+                            "update failed, using cached binary: {error}"
+                        )),
+                    );
+                }
                 Err(error) => return Err(error),
             }
 
