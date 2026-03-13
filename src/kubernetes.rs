@@ -9,7 +9,7 @@ use settings::merged_workspace_configuration;
 use templates::{resource_kinds, template_for_kind};
 use zed_extension_api::{
     self as zed,
-    lsp::{Completion, CompletionKind, Symbol},
+    lsp::{Completion, CompletionKind, Symbol, SymbolKind},
     serde_json::Value as JsonValue,
     settings::LspSettings,
     CodeLabel, CodeLabelSpan, ContextServerConfiguration, ContextServerId, KeyValueStore,
@@ -181,12 +181,28 @@ impl zed::Extension for KubernetesExtension {
         symbol: Symbol,
     ) -> Option<CodeLabel> {
         let name = &symbol.name;
+
+        let prefix = match symbol.kind {
+            SymbolKind::Class | SymbolKind::Module => Some("kind: "),
+            SymbolKind::Namespace => Some("ns: "),
+            _ => None,
+        };
+
         let code = format!("{name}: ");
         let name_len = name.len();
 
+        let mut spans = Vec::new();
+        if let Some(prefix) = prefix {
+            spans.push(CodeLabelSpan::literal(prefix, Some("keyword".to_string())));
+        }
+        spans.push(CodeLabelSpan::code_range(0..name_len));
+
+        let filter_start = prefix.map_or(0, str::len);
+        let filter_end = filter_start + name_len;
+
         Some(CodeLabel {
-            spans: vec![CodeLabelSpan::code_range(0..name_len)],
-            filter_range: (0..name_len).into(),
+            spans,
+            filter_range: (filter_start..filter_end).into(),
             code,
         })
     }
