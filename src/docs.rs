@@ -53,6 +53,43 @@ pub fn suggest_packages() -> Vec<String> {
     PACKAGES.iter().map(|(name, _)| name.to_string()).collect()
 }
 
+pub fn explain_resource(kind: &str) -> String {
+    let Some((_, anchor)) = PACKAGES.iter().find(|(name, _)| *name == kind) else {
+        return format!("# {kind}\n\nNo documentation available for this resource type.");
+    };
+
+    let url = format!("{KUBERNETES_DOCS_BASE}/{anchor}");
+
+    let response = fetch(&HttpRequest {
+        method: HttpMethod::Get,
+        url: url.clone(),
+        headers: vec![("Accept".to_string(), "text/html".to_string())],
+        body: None,
+        redirect_policy: RedirectPolicy::FollowAll,
+    });
+
+    let body = match response {
+        Ok(response) => String::from_utf8_lossy(&response.body).into_owned(),
+        Err(_) => {
+            return format!(
+                "# {kind}\n\nKubernetes API reference: {url}\n\n\
+                 See the official documentation for field definitions and usage examples."
+            );
+        }
+    };
+
+    let content = extract_text_content(&body);
+
+    if content.is_empty() {
+        return format!(
+            "# {kind}\n\nKubernetes API reference: {url}\n\n\
+             See the official documentation for field definitions and usage examples."
+        );
+    }
+
+    format!("# {kind}\n\nKubernetes API reference: {url}\n\n{content}")
+}
+
 pub fn index_package(package: &str, database: &KeyValueStore) -> zed::Result<()> {
     let (_, anchor) = PACKAGES
         .iter()

@@ -27,6 +27,10 @@ commit = "baff0b51c64ef6a1fb1f8390f3ad6015b83ec13a"
 description = "Insert a Kubernetes resource manifest template"
 requires_argument = true
 
+[slash_commands.kubernetes-explain]
+description = "Explain a Kubernetes resource type"
+requires_argument = true
+
 [[capabilities]]
 kind = "process:exec"
 command = "*"

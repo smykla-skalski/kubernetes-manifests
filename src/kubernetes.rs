@@ -21,6 +21,7 @@ use zed_extension_api::{
 };
 
 const SLASH_COMMAND_NAME: &str = "kubernetes";
+const EXPLAIN_COMMAND_NAME: &str = "kubernetes-explain";
 
 struct KubernetesExtension {
     kubernetes_lsp: KubernetesLanguageServer,
@@ -41,6 +42,56 @@ impl KubernetesExtension {
             context_server::CONTEXT_SERVER_NAME => Ok(()),
             _ => Err(format!("Unknown context server ID {context_server_id}")),
         }
+    }
+
+    fn run_template_command(args: &[String]) -> Result<SlashCommandOutput, String> {
+        let kind = args
+            .first()
+            .ok_or_else(|| "Usage: /kubernetes <ResourceKind>".to_string())?;
+
+        let template = template_for_kind(kind).ok_or_else(|| {
+            let available: Vec<_> = resource_kinds().collect();
+            format!(
+                "Unknown resource kind: {kind}. Available: {}",
+                available.join(", ")
+            )
+        })?;
+
+        let text = template.to_string();
+        let len = text.len();
+
+        Ok(SlashCommandOutput {
+            text,
+            sections: vec![SlashCommandOutputSection {
+                range: (0..len).into(),
+                label: kind.clone(),
+            }],
+        })
+    }
+
+    fn run_explain_command(args: &[String]) -> Result<SlashCommandOutput, String> {
+        let kind = args
+            .first()
+            .ok_or_else(|| "Usage: /kubernetes-explain <ResourceKind>".to_string())?;
+
+        let packages = docs::suggest_packages();
+        if !packages.iter().any(|p| p == kind) {
+            return Err(format!(
+                "Unknown resource kind: {kind}. Available: {}",
+                packages.join(", ")
+            ));
+        }
+
+        let text = docs::explain_resource(kind);
+        let len = text.len();
+
+        Ok(SlashCommandOutput {
+            text,
+            sections: vec![SlashCommandOutputSection {
+                range: (0..len).into(),
+                label: format!("Kubernetes: {kind}"),
+            }],
+        })
     }
 }
 
@@ -119,17 +170,20 @@ impl zed::Extension for KubernetesExtension {
         command: SlashCommand,
         args: Vec<String>,
     ) -> Result<Vec<SlashCommandArgumentCompletion>, String> {
-        if command.name != SLASH_COMMAND_NAME {
-            return Ok(Vec::new());
-        }
-
         let query = args.first().map(|s| s.to_lowercase()).unwrap_or_default();
 
-        Ok(resource_kinds()
+        let candidates: Vec<String> = match command.name.as_str() {
+            SLASH_COMMAND_NAME => resource_kinds().map(String::from).collect(),
+            EXPLAIN_COMMAND_NAME => docs::suggest_packages(),
+            _ => return Ok(Vec::new()),
+        };
+
+        Ok(candidates
+            .into_iter()
             .filter(|kind| kind.to_lowercase().contains(&query))
             .map(|kind| SlashCommandArgumentCompletion {
-                label: kind.to_string(),
-                new_text: kind.to_string(),
+                label: kind.clone(),
+                new_text: kind,
                 run_command: true,
             })
             .collect())
@@ -141,32 +195,11 @@ impl zed::Extension for KubernetesExtension {
         args: Vec<String>,
         _worktree: Option<&zed::Worktree>,
     ) -> Result<SlashCommandOutput, String> {
-        if command.name != SLASH_COMMAND_NAME {
-            return Err(format!("Unknown slash command: {}", command.name));
+        match command.name.as_str() {
+            SLASH_COMMAND_NAME => Self::run_template_command(&args),
+            EXPLAIN_COMMAND_NAME => Self::run_explain_command(&args),
+            _ => Err(format!("Unknown slash command: {}", command.name)),
         }
-
-        let kind = args
-            .first()
-            .ok_or_else(|| "Usage: /kubernetes <ResourceKind>".to_string())?;
-
-        let template = template_for_kind(kind).ok_or_else(|| {
-            let available: Vec<_> = resource_kinds().collect();
-            format!(
-                "Unknown resource kind: {kind}. Available: {}",
-                available.join(", ")
-            )
-        })?;
-
-        let text = template.to_string();
-        let len = text.len();
-
-        Ok(SlashCommandOutput {
-            text,
-            sections: vec![SlashCommandOutputSection {
-                range: (0..len).into(),
-                label: kind.clone(),
-            }],
-        })
     }
 
     fn label_for_completion(
@@ -497,16 +530,17 @@ mod tests {
             .and_then(TomlValue::as_table)
             .expect("extension manifest should define slash_commands");
 
-        let kubernetes_cmd = slash_commands
-            .get("kubernetes")
-            .and_then(TomlValue::as_table)
-            .expect("slash_commands should contain kubernetes");
-        assert_eq!(
-            kubernetes_cmd
-                .get("requires_argument")
-                .and_then(TomlValue::as_bool),
-            Some(true),
-        );
+        for name in ["kubernetes", "kubernetes-explain"] {
+            let cmd = slash_commands
+                .get(name)
+                .and_then(TomlValue::as_table)
+                .unwrap_or_else(|| panic!("slash_commands should contain {name}"));
+            assert_eq!(
+                cmd.get("requires_argument").and_then(TomlValue::as_bool),
+                Some(true),
+                "{name} should require an argument",
+            );
+        }
     }
 
     #[test]
