@@ -5,19 +5,26 @@ const TEMPLATES: &[(&str, &str)] = &[
     ("CronJob", CRONJOB),
     ("DaemonSet", DAEMONSET),
     ("Deployment", DEPLOYMENT),
+    ("EndpointSlice", ENDPOINT_SLICE),
     ("HorizontalPodAutoscaler", HORIZONTAL_POD_AUTOSCALER),
     ("Ingress", INGRESS),
     ("Job", JOB),
+    ("LimitRange", LIMIT_RANGE),
     ("Namespace", NAMESPACE),
     ("NetworkPolicy", NETWORK_POLICY),
+    ("PersistentVolume", PERSISTENT_VOLUME),
     ("PersistentVolumeClaim", PERSISTENT_VOLUME_CLAIM),
     ("Pod", POD),
+    ("PodDisruptionBudget", POD_DISRUPTION_BUDGET),
+    ("ReplicaSet", REPLICA_SET),
+    ("ResourceQuota", RESOURCE_QUOTA),
     ("Role", ROLE),
     ("RoleBinding", ROLE_BINDING),
     ("Secret", SECRET),
     ("Service", SERVICE),
     ("ServiceAccount", SERVICE_ACCOUNT),
     ("StatefulSet", STATEFULSET),
+    ("StorageClass", STORAGE_CLASS),
 ];
 
 pub fn resource_kinds() -> impl Iterator<Item = &'static str> {
@@ -329,6 +336,116 @@ spec:
               app: frontend
       ports:
         - port: 80
+";
+
+const POD_DISRUPTION_BUDGET: &str = "\
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: my-pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: my-app
+";
+
+const LIMIT_RANGE: &str = "\
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: my-limitrange
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: 500m
+        memory: 128Mi
+      defaultRequest:
+        cpu: 100m
+        memory: 64Mi
+";
+
+const RESOURCE_QUOTA: &str = "\
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: my-quota
+spec:
+  hard:
+    pods: \"10\"
+    requests.cpu: \"4\"
+    requests.memory: 8Gi
+    limits.cpu: \"8\"
+    limits.memory: 16Gi
+";
+
+const STORAGE_CLASS: &str = "\
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: my-storageclass
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+";
+
+const PERSISTENT_VOLUME: &str = "\
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: my-storageclass
+  hostPath:
+    path: /mnt/data
+";
+
+const REPLICA_SET: &str = "\
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: my-replicaset
+  labels:
+    app: my-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+";
+
+const ENDPOINT_SLICE: &str = "\
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: my-endpointslice
+  labels:
+    kubernetes.io/service-name: my-service
+addressType: IPv4
+ports:
+  - name: http
+    port: 80
+    protocol: TCP
+endpoints:
+  - addresses:
+      - 10.0.0.1
+    conditions:
+      ready: true
 ";
 
 #[cfg(test)]
