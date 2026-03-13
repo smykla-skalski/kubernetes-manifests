@@ -8,7 +8,7 @@ repository = "https://github.com/smykla-skalski/kubernetes-manifests"
 
 [language_servers.kubernetes-language-server]
 name = "Kubernetes Language Server"
-language = "Kubernetes"
+languages = ["Kubernetes"]
 
 [language_servers.kubernetes-language-server.language_ids]
 "Kubernetes" = "yaml"

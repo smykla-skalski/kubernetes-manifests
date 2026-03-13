@@ -3,7 +3,10 @@ mod settings;
 
 use language_server::{KubernetesLanguageServer, SERVER_NAME};
 use settings::merged_workspace_configuration;
-use zed_extension_api::{self as zed, settings::LspSettings, LanguageServerId, Result};
+use zed_extension_api::{
+    self as zed, lsp::Completion, settings::LspSettings, CodeLabel, CodeLabelSpan,
+    LanguageServerId, Result,
+};
 
 struct KubernetesExtension {
     kubernetes_language_server: KubernetesLanguageServer,
@@ -44,8 +47,12 @@ impl zed::Extension for KubernetesExtension {
         let user_settings = LspSettings::for_worktree(language_server_id.as_ref(), worktree)
             .ok()
             .and_then(|settings| settings.settings);
+        let worktree_root = worktree.root_path();
 
-        Ok(Some(merged_workspace_configuration(user_settings)))
+        Ok(Some(merged_workspace_configuration(
+            user_settings,
+            Some(&worktree_root),
+        )))
     }
 
     fn language_server_initialization_options(
@@ -59,6 +66,43 @@ impl zed::Extension for KubernetesExtension {
                 .ok()
                 .and_then(|settings| settings.initialization_options),
         )
+    }
+
+    fn label_for_completion(
+        &self,
+        _language_server_id: &LanguageServerId,
+        completion: Completion,
+    ) -> Option<CodeLabel> {
+        let detail = completion.detail.as_deref()?;
+        let label = &completion.label;
+        let code = format!("{label}: {detail}");
+        let label_len = label.len();
+
+        Some(CodeLabel {
+            spans: vec![
+                CodeLabelSpan::code_range(0..label_len),
+                CodeLabelSpan::literal(": ", None),
+                CodeLabelSpan::literal(detail, Some("comment".to_string())),
+            ],
+            filter_range: (0..label_len).into(),
+            code,
+        })
+    }
+
+    fn label_for_symbol(
+        &self,
+        _language_server_id: &LanguageServerId,
+        symbol: zed::lsp::Symbol,
+    ) -> Option<CodeLabel> {
+        let name = &symbol.name;
+        let code = format!("{name}: ");
+        let name_len = name.len();
+
+        Some(CodeLabel {
+            spans: vec![CodeLabelSpan::code_range(0..name_len)],
+            filter_range: (0..name_len).into(),
+            code,
+        })
     }
 }
 

@@ -46,15 +46,15 @@ Three Rust source files compile to a `cdylib` WebAssembly extension:
 
 - `src/kubernetes.rs` - thin extension entrypoint, implements `zed::Extension` trait, routes to language server and settings modules. Integration tests for `extension.toml`, `first_line_pattern` detection, and icon theme live here.
 - `src/language_server.rs` - resolves `yaml-language-server` binary (user-configured path > `$PATH` lookup > managed npm install). Builds the `zed::Command` with merged args and env.
-- `src/settings.rs` - produces default workspace configuration (Kubernetes schema globs, YAML formatting) and recursively merges user settings on top.
+- `src/settings.rs` - produces default workspace configuration (Kubernetes schema globs, YAML formatting), resolves relative schema paths against the worktree root, and recursively merges user settings on top.
 
-Language definition lives in `languages/kubernetes/config.toml` with Tree-sitter query files (`highlights.scm`, `outline.scm`, etc.) alongside it. The `first_line_pattern` regex does the plain-YAML Kubernetes auto-detection within a 25-line content window.
+Language definition lives in `languages/kubernetes/config.toml` with Tree-sitter query files (`highlights.scm`, `outline.scm`, etc.) alongside it. The `first_line_pattern` regex does the plain-YAML Kubernetes auto-detection within Zed's 256-character content window.
 
 `extension.toml` declares the extension metadata, grammar source, npm capability for `yaml-language-server`, and the language server ID `kubernetes-language-server`.
 
 ## Key terms
 
-- **content window** - the first ~25 lines of a buffer that Zed exposes to `first_line_pattern` for language detection (`languages/kubernetes/config.toml:5`)
+- **content window** - the first 256 characters of a buffer that Zed exposes to `first_line_pattern` for language detection (`languages/kubernetes/config.toml:5`)
 - **worktree** - Zed's representation of an open project directory, passed to extension trait methods for per-project settings
 - **schema globs** - the file patterns in `settings.rs` that tell `yaml-language-server` which files get Kubernetes schema validation
 - **managed npm install** - the fallback path in `language_server.rs` where the extension installs `yaml-language-server` via `zed::npm_install_package` when no local binary is found

@@ -9,7 +9,7 @@ use zed_extension_api::{
 pub(crate) const SERVER_NAME: &str = "kubernetes-language-server";
 pub(crate) const BINARY_NAME: &str = "yaml-language-server";
 const PACKAGE_NAME: &str = "yaml-language-server";
-const PACKAGE_VERSION: &str = "1.19.2";
+const PACKAGE_VERSION: &str = "1.21.0";
 const SERVER_PATH: &str = "node_modules/yaml-language-server/bin/yaml-language-server";
 
 pub(crate) struct KubernetesLanguageServer {

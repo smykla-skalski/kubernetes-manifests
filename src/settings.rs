@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use serde_json::{json, Map, Value};
 
 fn default_schema_globs() -> Value {
@@ -29,14 +31,59 @@ pub(crate) fn default_workspace_configuration() -> Value {
     })
 }
 
-pub(crate) fn merged_workspace_configuration(user_settings: Option<Value>) -> Value {
+pub(crate) fn merged_workspace_configuration(
+    user_settings: Option<Value>,
+    worktree_root: Option<&str>,
+) -> Value {
     let mut configuration = default_workspace_configuration();
 
     if let Some(user_settings) = user_settings {
+        let user_settings = match worktree_root {
+            Some(root) => resolve_schema_paths(user_settings, root),
+            None => user_settings,
+        };
         merge_json_value_into(user_settings, &mut configuration);
     }
 
     configuration
+}
+
+fn resolve_schema_paths(mut settings: Value, worktree_root: &str) -> Value {
+    let yaml_schemas = settings
+        .as_object_mut()
+        .and_then(|obj| obj.get_mut("yaml"))
+        .and_then(Value::as_object_mut)
+        .and_then(|yaml| yaml.remove("schemas"));
+
+    let Some(Value::Object(schemas)) = yaml_schemas else {
+        return settings;
+    };
+
+    let resolved: Map<String, Value> = schemas
+        .into_iter()
+        .map(|(url, globs)| {
+            if url.starts_with('.') {
+                let relative = url.strip_prefix("./").unwrap_or(&url);
+                let resolved = PathBuf::from(worktree_root)
+                    .join(relative)
+                    .to_string_lossy()
+                    .into_owned();
+                (resolved, globs)
+            } else {
+                (url, globs)
+            }
+        })
+        .collect();
+
+    if let Some(yaml) = settings
+        .as_object_mut()
+        .and_then(|obj| obj.get_mut("yaml"))
+        .and_then(Value::as_object_mut)
+    {
+        yaml.insert("schemas".to_string(), Value::Object(resolved));
+    }
+
+    settings
 }
 
 fn merge_json_value_into(source: Value, destination: &mut Value) {
@@ -80,12 +127,15 @@ mod tests {
 
     #[test]
     fn recursive_merge_preserves_defaults_and_adds_nested_user_keys() {
-        let configuration = merged_workspace_configuration(Some(json!({
-            "yaml": {
-                "validate": true,
-                "hover": true
-            }
-        })));
+        let configuration = merged_workspace_configuration(
+            Some(json!({
+                "yaml": {
+                    "validate": true,
+                    "hover": true
+                }
+            })),
+            None,
+        );
 
         assert_eq!(configuration["yaml"]["format"]["enable"], true);
         assert_eq!(configuration["yaml"]["validate"], true);
@@ -95,17 +145,92 @@ mod tests {
 
     #[test]
     fn user_settings_can_override_default_kubernetes_schema_globs() {
-        let configuration = merged_workspace_configuration(Some(json!({
-            "yaml": {
-                "schemas": {
-                    "kubernetes": ["*.tmpl.yaml"]
+        let configuration = merged_workspace_configuration(
+            Some(json!({
+                "yaml": {
+                    "schemas": {
+                        "kubernetes": ["*.tmpl.yaml"]
+                    }
                 }
-            }
-        })));
+            })),
+            None,
+        );
 
         assert_eq!(
             configuration["yaml"]["schemas"]["kubernetes"],
             json!(["*.tmpl.yaml"]),
         );
+    }
+
+    #[test]
+    fn relative_schema_paths_resolve_against_worktree_root() {
+        let configuration = merged_workspace_configuration(
+            Some(json!({
+                "yaml": {
+                    "schemas": {
+                        "./schemas/custom.json": ["*.yaml"],
+                        "https://example.com/schema.json": ["*.k8s.yaml"]
+                    }
+                }
+            })),
+            Some("/home/user/project"),
+        );
+
+        let schemas = configuration["yaml"]["schemas"].as_object().unwrap();
+        assert!(
+            schemas.contains_key("/home/user/project/schemas/custom.json"),
+            "relative path should resolve against worktree root",
+        );
+        assert!(
+            schemas.contains_key("https://example.com/schema.json"),
+            "absolute URL should pass through unchanged",
+        );
+        assert!(
+            !schemas.contains_key("./schemas/custom.json"),
+            "original relative path should be replaced",
+        );
+    }
+
+    #[test]
+    fn relative_schema_paths_resolve_parent_directory_references() {
+        let configuration = merged_workspace_configuration(
+            Some(json!({
+                "yaml": {
+                    "schemas": {
+                        "../shared/schema.json": ["*.yaml"]
+                    }
+                }
+            })),
+            Some("/home/user/project"),
+        );
+
+        let schemas = configuration["yaml"]["schemas"].as_object().unwrap();
+        assert!(
+            schemas.contains_key("/home/user/project/../shared/schema.json"),
+            "parent-relative path should resolve against worktree root",
+        );
+        assert!(
+            !schemas.contains_key("../shared/schema.json"),
+            "original relative path should be replaced",
+        );
+    }
+
+    #[test]
+    fn schema_path_resolution_preserves_non_relative_urls() {
+        let configuration = merged_workspace_configuration(
+            Some(json!({
+                "yaml": {
+                    "schemas": {
+                        "kubernetes": ["*.yaml"],
+                        "/absolute/path/schema.json": ["*.yml"]
+                    }
+                }
+            })),
+            Some("/home/user/project"),
+        );
+
+        let schemas = configuration["yaml"]["schemas"].as_object().unwrap();
+        assert!(schemas.contains_key("kubernetes"));
+        assert!(schemas.contains_key("/absolute/path/schema.json"));
     }
 }
