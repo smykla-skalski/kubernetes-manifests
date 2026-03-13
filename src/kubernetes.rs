@@ -4,6 +4,7 @@ mod language_server;
 mod settings;
 mod templates;
 
+use context_server::KubernetesContextServer;
 use language_server::{KubernetesLanguageServer, SERVER_NAME};
 use settings::merged_workspace_configuration;
 use templates::{resource_kinds, template_for_kind};
@@ -21,6 +22,7 @@ const SLASH_COMMAND_NAME: &str = "kubernetes";
 
 struct KubernetesExtension {
     kubernetes_language_server: KubernetesLanguageServer,
+    kubernetes_context_server: KubernetesContextServer,
 }
 
 impl KubernetesExtension {
@@ -43,6 +45,7 @@ impl zed::Extension for KubernetesExtension {
     fn new() -> Self {
         Self {
             kubernetes_language_server: KubernetesLanguageServer::new(),
+            kubernetes_context_server: KubernetesContextServer::new(),
         }
     }
 
@@ -232,10 +235,9 @@ impl zed::Extension for KubernetesExtension {
         project: &Project,
     ) -> Result<zed::Command> {
         Self::ensure_known_context_server(context_server_id)?;
-        Ok(context_server::context_server_command(
-            context_server_id,
-            project,
-        ))
+        Ok(self
+            .kubernetes_context_server
+            .context_server_command(context_server_id, project))
     }
 
     fn context_server_configuration(
