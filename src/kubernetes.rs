@@ -315,18 +315,29 @@ mod tests {
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
     }
 
+    fn read_repo_file(relative_path: &str) -> String {
+        let path = repo_root().join(relative_path);
+        fs::read_to_string(&path)
+            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()))
+    }
+
     fn read_extension_manifest() -> TomlValue {
         let path = repo_root().join("extension.toml");
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
+        let source = read_repo_file("extension.toml");
+        toml::from_str(&source)
+            .unwrap_or_else(|error| panic!("failed to parse {}: {error}", path.display()))
+    }
+
+    fn read_cargo_manifest() -> TomlValue {
+        let path = repo_root().join("Cargo.toml");
+        let source = read_repo_file("Cargo.toml");
         toml::from_str(&source)
             .unwrap_or_else(|error| panic!("failed to parse {}: {error}", path.display()))
     }
 
     fn read_language_config() -> TomlValue {
         let path = repo_root().join("languages/kubernetes/config.toml");
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
+        let source = read_repo_file("languages/kubernetes/config.toml");
         toml::from_str(&source)
             .unwrap_or_else(|error| panic!("failed to parse {}: {error}", path.display()))
     }
@@ -341,15 +352,12 @@ mod tests {
     }
 
     fn read_fixture(relative_path: &str) -> String {
-        let path = repo_root().join(relative_path);
-        fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()))
+        read_repo_file(relative_path)
     }
 
     fn read_icon_theme() -> JsonValue {
         let path = repo_root().join("icon_themes/kubernetes.json");
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
+        let source = read_repo_file("icon_themes/kubernetes.json");
         serde_json::from_str(&source)
             .unwrap_or_else(|error| panic!("failed to parse {}: {error}", path.display()))
     }
@@ -411,11 +419,94 @@ mod tests {
     #[test]
     fn kubernetes_icon_theme_maps_kubernetes_suffixes() {
         let icon_theme = read_icon_theme();
-
-        let theme = icon_theme["themes"]
+        let themes = icon_theme["themes"]
             .as_array()
-            .and_then(|themes| themes.first())
-            .expect("kubernetes icon theme should define at least one theme");
+            .expect("kubernetes icon theme should define themes");
+
+        assert_eq!(
+            themes.len(),
+            2,
+            "kubernetes icon theme should define dark and light themes"
+        );
+        for theme in themes {
+            assert_icon_theme_theme(theme);
+        }
+    }
+
+    #[test]
+    fn build_wasm_task_derives_artifact_name_from_cargo_package() {
+        let cargo_manifest = read_cargo_manifest();
+        let package_name = cargo_manifest["package"]["name"]
+            .as_str()
+            .expect("Cargo.toml should define package.name");
+        let build_task = read_repo_file(".mise/tasks/build/wasm");
+
+        assert!(
+            build_task.contains("crate_name=\"$("),
+            "build:wasm should derive the crate name from Cargo.toml",
+        );
+        assert!(
+            build_task.contains("tr '-' '_'"),
+            "build:wasm should normalize dashes to underscores for the wasm artifact name",
+        );
+        assert!(
+            build_task.contains("artifact_path=\"target/wasm32-wasip2/debug/${crate_name}.wasm\""),
+            "build:wasm should assemble the artifact path from the derived crate name",
+        );
+        assert!(
+            !build_task.contains("kubernetes_manifests.wasm"),
+            "build:wasm should not hardcode the old crate artifact name",
+        );
+        assert!(
+            !build_task.contains(&format!(
+                "target/wasm32-wasip2/debug/{}.wasm",
+                package_name.replace('-', "_")
+            )),
+            "build:wasm should avoid hardcoding the current crate artifact name",
+        );
+    }
+
+    #[test]
+    fn dev_install_tasks_clean_current_and_legacy_extension_paths() {
+        let install_task = read_repo_file(".mise/tasks/zed/install-dev-extension");
+        let refresh_task = read_repo_file(".mise/tasks/zed/refresh-runtime");
+
+        assert!(
+            install_task.contains("installed_extension_path=\"$installed_dir/kubernetes\""),
+            "zed:install-dev-extension should install to the current kubernetes id",
+        );
+        assert!(
+            install_task.contains(
+                "legacy_installed_extension_path=\"$installed_dir/kubernetes-manifests\""
+            ),
+            "zed:install-dev-extension should keep cleaning the legacy install id",
+        );
+        assert!(
+            install_task.contains(
+                "rm -rf \"$installed_extension_path\" \"$legacy_installed_extension_path\""
+            ),
+            "zed:install-dev-extension should remove both current and legacy install roots",
+        );
+        assert!(
+            refresh_task.contains("work_dir=\"$user_data_dir/extensions/work/kubernetes\""),
+            "zed:refresh-runtime should rotate the current runtime cache directory",
+        );
+        assert!(
+            refresh_task
+                .contains("find \"$legacy_work_root\" -maxdepth 1 -name 'kubernetes-manifests*' -exec rm -rf {} +"),
+            "zed:refresh-runtime should keep cleaning legacy runtime caches",
+        );
+    }
+
+    fn assert_icon_theme_theme(theme: &JsonValue) {
+        let appearance = theme["appearance"]
+            .as_str()
+            .expect("icon theme should define appearance");
+        assert!(
+            matches!(appearance, "dark" | "light"),
+            "icon theme appearance should be dark or light, got {appearance}",
+        );
+
         let suffixes = theme["file_suffixes"]
             .as_object()
             .expect("icon theme should define file_suffixes");

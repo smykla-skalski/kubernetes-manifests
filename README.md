@@ -64,6 +64,8 @@ mise run test
 mise run lint
 ```
 
+`mise run test` now includes the wasm dev-extension build, so crate-name and artifact-path drift gets caught before `Install Dev Extension` breaks.
+
 The validation split follows Zed's own extension workflow: Rust checks on one side, packaging and query checks on the other. Editor behavior is still a manual fixture pass. That is normal for Zed extensions.
 
 After Rust changes, rebuild the checked-in WebAssembly artifact:
@@ -95,6 +97,7 @@ Run the individual checks when you need a narrower signal:
 
 ```sh
 mise run check:test
+mise run check:wasm
 mise run check:fmt
 mise run check:clippy
 mise run check:nextest
@@ -197,6 +200,12 @@ mise run check:queries
 ```
 
 Install it in Zed with `mise run zed:install-dev-extension`, or use "Extensions: Install Dev Extension" and point Zed at this repository root.
+
+If your normal Zed profile drifted from the repo's current extension id or runtime layout, repair that profile directly with:
+
+```sh
+mise run zed:install-dev-extension --user-data-dir "$HOME/Library/Application Support/Zed"
+```
 
 ## Manual validation
 

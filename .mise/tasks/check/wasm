@@ -1,0 +1,6 @@
+#!/bin/sh
+#MISE description="Build extension.wasm to catch dev-install artifact drift early"
+#MISE depends=["build:wasm"]
+set -eu
+
+:
