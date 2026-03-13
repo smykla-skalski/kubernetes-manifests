@@ -1,4 +1,8 @@
-use zed_extension_api::{self as zed, KeyValueStore};
+use zed_extension_api::{
+    self as zed,
+    http_client::{fetch, HttpMethod, HttpRequest, RedirectPolicy},
+    KeyValueStore,
+};
 
 const DOCS_PROVIDER: &str = "kubernetes";
 
@@ -41,15 +45,15 @@ const PACKAGES: &[(&str, &str)] = &[
     ("ResourceQuota", "#resourcequota-v1-core"),
 ];
 
-pub(crate) fn is_docs_provider(provider: &str) -> bool {
+pub fn is_docs_provider(provider: &str) -> bool {
     provider == DOCS_PROVIDER
 }
 
-pub(crate) fn suggest_packages() -> Vec<String> {
+pub fn suggest_packages() -> Vec<String> {
     PACKAGES.iter().map(|(name, _)| name.to_string()).collect()
 }
 
-pub(crate) fn index_package(package: &str, database: &KeyValueStore) -> zed::Result<()> {
+pub fn index_package(package: &str, database: &KeyValueStore) -> zed::Result<()> {
     let (_, anchor) = PACKAGES
         .iter()
         .find(|(name, _)| *name == package)
@@ -57,12 +61,12 @@ pub(crate) fn index_package(package: &str, database: &KeyValueStore) -> zed::Res
 
     let url = format!("{KUBERNETES_DOCS_BASE}/{anchor}");
 
-    let response = zed::http_client::fetch(&zed::http_client::HttpRequest {
-        method: zed::http_client::HttpMethod::Get,
+    let response = fetch(&HttpRequest {
+        method: HttpMethod::Get,
         url: url.clone(),
         headers: vec![("Accept".to_string(), "text/html".to_string())],
         body: None,
-        redirect_policy: zed::http_client::RedirectPolicy::FollowAll,
+        redirect_policy: RedirectPolicy::FollowAll,
     });
 
     let body = match response {
@@ -156,11 +160,12 @@ mod tests {
 
     #[test]
     fn extract_text_content_limits_output_lines() {
-        let html = (0..300)
-            .map(|i| format!("<p>Line {i}</p>\n"))
-            .collect::<String>();
+        use std::fmt::Write;
+        let html = (0..300).fold(String::new(), |mut acc, i| {
+            writeln!(acc, "<p>Line {i}</p>").unwrap();
+            acc
+        });
         let text = extract_text_content(&html);
-        let lines: Vec<_> = text.lines().collect();
-        assert!(lines.len() <= 201);
+        assert!(text.lines().count() <= 201);
     }
 }

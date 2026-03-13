@@ -1,3 +1,4 @@
+mod context_server;
 mod docs;
 mod language_server;
 mod settings;
@@ -7,9 +8,13 @@ use language_server::{KubernetesLanguageServer, SERVER_NAME};
 use settings::merged_workspace_configuration;
 use templates::{resource_kinds, template_for_kind};
 use zed_extension_api::{
-    self as zed, lsp::Completion, settings::LspSettings, CodeLabel, CodeLabelSpan, KeyValueStore,
-    LanguageServerId, Result, SlashCommand, SlashCommandArgumentCompletion, SlashCommandOutput,
-    SlashCommandOutputSection,
+    self as zed,
+    lsp::{Completion, Symbol},
+    serde_json::Value as JsonValue,
+    settings::LspSettings,
+    CodeLabel, CodeLabelSpan, ContextServerConfiguration, ContextServerId, KeyValueStore,
+    LanguageServerId, Project, Result, SlashCommand, SlashCommandArgumentCompletion,
+    SlashCommandOutput, SlashCommandOutputSection,
 };
 
 const SLASH_COMMAND_NAME: &str = "kubernetes";
@@ -23,6 +28,13 @@ impl KubernetesExtension {
         match language_server_id.as_ref() {
             SERVER_NAME => Ok(()),
             _ => Err(format!("Unknown language server ID {language_server_id}")),
+        }
+    }
+
+    fn ensure_known_context_server(context_server_id: &ContextServerId) -> Result<()> {
+        match context_server_id.as_ref() {
+            context_server::CONTEXT_SERVER_NAME => Ok(()),
+            _ => Err(format!("Unknown context server ID {context_server_id}")),
         }
     }
 }
@@ -48,7 +60,7 @@ impl zed::Extension for KubernetesExtension {
         &mut self,
         language_server_id: &LanguageServerId,
         worktree: &zed::Worktree,
-    ) -> Result<Option<zed::serde_json::Value>> {
+    ) -> Result<Option<JsonValue>> {
         Self::ensure_known_server(language_server_id)?;
         let user_settings = LspSettings::for_worktree(language_server_id.as_ref(), worktree)
             .ok()
@@ -71,7 +83,7 @@ impl zed::Extension for KubernetesExtension {
         &mut self,
         language_server_id: &LanguageServerId,
         worktree: &zed::Worktree,
-    ) -> Result<Option<zed::serde_json::Value>> {
+    ) -> Result<Option<JsonValue>> {
         Self::ensure_known_server(language_server_id)?;
         Ok(
             LspSettings::for_worktree(language_server_id.as_ref(), worktree)
@@ -130,7 +142,7 @@ impl zed::Extension for KubernetesExtension {
             text,
             sections: vec![SlashCommandOutputSection {
                 range: (0..len).into(),
-                label: kind.to_string(),
+                label: kind.clone(),
             }],
         })
     }
@@ -159,7 +171,7 @@ impl zed::Extension for KubernetesExtension {
     fn label_for_symbol(
         &self,
         _language_server_id: &LanguageServerId,
-        symbol: zed::lsp::Symbol,
+        symbol: Symbol,
     ) -> Option<CodeLabel> {
         let name = &symbol.name;
         let code = format!("{name}: ");
@@ -189,6 +201,27 @@ impl zed::Extension for KubernetesExtension {
             return Err(format!("Unknown docs provider: {provider}"));
         }
         docs::index_package(&package, database)
+    }
+
+    fn context_server_command(
+        &mut self,
+        context_server_id: &ContextServerId,
+        project: &Project,
+    ) -> Result<zed::Command> {
+        Self::ensure_known_context_server(context_server_id)?;
+        Ok(context_server::context_server_command(
+            context_server_id,
+            project,
+        ))
+    }
+
+    fn context_server_configuration(
+        &mut self,
+        context_server_id: &ContextServerId,
+        _project: &Project,
+    ) -> Result<Option<ContextServerConfiguration>> {
+        Self::ensure_known_context_server(context_server_id)?;
+        Ok(Some(context_server::context_server_configuration()))
     }
 }
 
@@ -379,6 +412,20 @@ mod tests {
         assert_eq!(
             helm_icon.get("path").and_then(JsonValue::as_str),
             Some("./icons/helm.svg"),
+        );
+    }
+
+    #[test]
+    fn extension_manifest_declares_context_server() {
+        let manifest = read_extension_manifest();
+        let context_servers = manifest
+            .get("context_servers")
+            .and_then(TomlValue::as_table)
+            .expect("extension manifest should define context_servers");
+
+        assert!(
+            context_servers.contains_key("kubernetes-context-server"),
+            "context_servers should contain kubernetes-context-server",
         );
     }
 
