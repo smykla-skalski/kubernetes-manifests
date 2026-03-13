@@ -53,10 +53,16 @@ impl zed::Extension for KubernetesExtension {
             .ok()
             .and_then(|settings| settings.settings);
         let worktree_root = worktree.root_path();
+        let home_dir = worktree
+            .shell_env()
+            .into_iter()
+            .find(|(key, _)| key == "HOME")
+            .map(|(_, value)| value);
 
         Ok(Some(merged_workspace_configuration(
             user_settings,
             Some(&worktree_root),
+            home_dir.as_deref(),
         )))
     }
 

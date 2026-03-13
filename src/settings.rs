@@ -46,12 +46,13 @@ pub(crate) fn default_workspace_configuration() -> Value {
 pub(crate) fn merged_workspace_configuration(
     user_settings: Option<Value>,
     worktree_root: Option<&str>,
+    home_dir: Option<&str>,
 ) -> Value {
     let mut configuration = default_workspace_configuration();
 
     if let Some(user_settings) = user_settings {
         let user_settings = match worktree_root {
-            Some(root) => resolve_schema_paths(user_settings, root),
+            Some(root) => resolve_schema_paths(user_settings, root, home_dir),
             None => user_settings,
         };
         merge_json_value_into(user_settings, &mut configuration);
@@ -60,7 +61,7 @@ pub(crate) fn merged_workspace_configuration(
     configuration
 }
 
-fn resolve_schema_paths(mut settings: Value, worktree_root: &str) -> Value {
+fn resolve_schema_paths(mut settings: Value, worktree_root: &str, home_dir: Option<&str>) -> Value {
     let yaml_schemas = settings
         .as_object_mut()
         .and_then(|obj| obj.get_mut("yaml"))
@@ -74,7 +75,13 @@ fn resolve_schema_paths(mut settings: Value, worktree_root: &str) -> Value {
     let resolved: Map<String, Value> = schemas
         .into_iter()
         .map(|(url, globs)| {
-            if url.starts_with('.') {
+            if let Some((home, rest)) = home_dir.zip(url.strip_prefix("~/")) {
+                let resolved = PathBuf::from(home)
+                    .join(rest)
+                    .to_string_lossy()
+                    .into_owned();
+                (resolved, globs)
+            } else if url.starts_with('.') {
                 let relative = url.strip_prefix("./").unwrap_or(&url);
                 let resolved = PathBuf::from(worktree_root)
                     .join(relative)
@@ -162,6 +169,7 @@ mod tests {
                 }
             })),
             None,
+            None,
         );
 
         assert_eq!(configuration["yaml"]["format"]["enable"], true);
@@ -180,6 +188,7 @@ mod tests {
                     }
                 }
             })),
+            None,
             None,
         );
 
@@ -201,6 +210,7 @@ mod tests {
                 }
             })),
             Some("/home/user/project"),
+            None,
         );
 
         let schemas = configuration["yaml"]["schemas"].as_object().unwrap();
@@ -229,6 +239,7 @@ mod tests {
                 }
             })),
             Some("/home/user/project"),
+            None,
         );
 
         let schemas = configuration["yaml"]["schemas"].as_object().unwrap();
@@ -254,10 +265,78 @@ mod tests {
                 }
             })),
             Some("/home/user/project"),
+            None,
         );
 
         let schemas = configuration["yaml"]["schemas"].as_object().unwrap();
         assert!(schemas.contains_key("kubernetes"));
         assert!(schemas.contains_key("/absolute/path/schema.json"));
+    }
+
+    #[test]
+    fn tilde_schema_path_resolves_with_home_dir() {
+        let configuration = merged_workspace_configuration(
+            Some(json!({
+                "yaml": {
+                    "schemas": {
+                        "~/schemas/custom.json": ["*.yaml"]
+                    }
+                }
+            })),
+            Some("/home/user/project"),
+            Some("/home/user"),
+        );
+
+        let schemas = configuration["yaml"]["schemas"].as_object().unwrap();
+        assert!(
+            schemas.contains_key("/home/user/schemas/custom.json"),
+            "~/path should resolve to $HOME/path",
+        );
+        assert!(
+            !schemas.contains_key("~/schemas/custom.json"),
+            "original tilde path should be replaced",
+        );
+    }
+
+    #[test]
+    fn tilde_schema_path_passes_through_without_home_dir() {
+        let configuration = merged_workspace_configuration(
+            Some(json!({
+                "yaml": {
+                    "schemas": {
+                        "~/schemas/custom.json": ["*.yaml"]
+                    }
+                }
+            })),
+            Some("/home/user/project"),
+            None,
+        );
+
+        let schemas = configuration["yaml"]["schemas"].as_object().unwrap();
+        assert!(
+            schemas.contains_key("~/schemas/custom.json"),
+            "~/path should pass through when HOME is not set",
+        );
+    }
+
+    #[test]
+    fn tilde_other_user_path_is_not_expanded() {
+        let configuration = merged_workspace_configuration(
+            Some(json!({
+                "yaml": {
+                    "schemas": {
+                        "~other/schemas/custom.json": ["*.yaml"]
+                    }
+                }
+            })),
+            Some("/home/user/project"),
+            Some("/home/user"),
+        );
+
+        let schemas = configuration["yaml"]["schemas"].as_object().unwrap();
+        assert!(
+            schemas.contains_key("~other/schemas/custom.json"),
+            "~other/path should NOT be expanded",
+        );
     }
 }
