@@ -7,4 +7,19 @@ set -eu
 
 cd "${MISE_CONFIG_ROOT:-$PWD}"
 RUSTC_WRAPPER="" cargo build --target wasm32-wasip2 --target-dir target
-install -m 0644 target/wasm32-wasip2/debug/kubernetes_manifests.wasm extension.wasm
+
+crate_name="$(
+  awk -F'"' '
+    $0 == "[package]" { in_package = 1; next }
+    /^\[/ { in_package = 0 }
+    in_package && $1 ~ /^name = / { print $2; exit }
+  ' Cargo.toml | tr '-' '_'
+)"
+
+artifact_path="target/wasm32-wasip2/debug/${crate_name}.wasm"
+if [ ! -f "$artifact_path" ]; then
+  printf >&2 'expected wasm artifact not found: %s\n' "$artifact_path"
+  exit 1
+fi
+
+install -m 0644 "$artifact_path" extension.wasm
