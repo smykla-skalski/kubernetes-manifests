@@ -2,13 +2,25 @@
 
 Kubernetes is a standalone Zed extension that adds a distinct `Kubernetes` language mode on top of the same Tree-sitter YAML grammar revision Zed uses for built-in YAML support, plus `yaml-language-server`.
 
-The extension auto-detects Kubernetes in two ways: by Kubernetes-specific file names such as `*.k8s.yaml` and `*.kubernetes.yml`, and by plain `.yaml` or `.yml` document headers when the opening document block contains both top-level `apiVersion:` and `kind:` keys. That detection is intentionally front-loaded to the opening content window Zed exposes to extensions, so files that only mention those keys much later in the buffer can still stay on built-in YAML.
+The extension auto-detects Kubernetes in two ways: by Kubernetes-specific file suffixes (`*.k8s.yaml`, `*.kubernetes.yml`), and by content when the very first line of a file starts with `apiVersion:`. Files opened with a generic `.yaml` extension are claimed by Zed's built-in YAML language, which always wins over content-based detection.
 
-Markdown fenced code blocks that use the `kubernetes` info string get Kubernetes syntax highlighting. Full Kubernetes LSP inside arbitrary embedded regions is not available from a standalone extension because Zed attaches language servers at the buffer level.
+To get Kubernetes mode on all your YAML files, add `file_types` to your Zed settings:
+
+```json
+{
+  "file_types": {
+    "Kubernetes": ["*.yaml", "*.yml"]
+  }
+}
+```
+
+You can scope this to a project by putting it in `.zed/settings.json` at the project root instead of your global settings. This tells Zed to treat all matching files as Kubernetes, giving you K8s-specific highlights, schema validation, and LSP support.
+
+Markdown fenced code blocks that use the `kubernetes` info string get Kubernetes syntax highlighting. Full Kubernetes LSP inside embedded regions is not available because Zed attaches language servers at the buffer level.
 
 Use the Settings Editor or project `settings.json` to configure the language server id `kubernetes-language-server`. The extension merges your `lsp.kubernetes-language-server.settings` on top of its default Kubernetes schema association.
 
-By default, the bundled schema association still targets Kubernetes-specific suffixes such as `*.k8s.yaml` and `*.kubernetes.yml`. If you want schema validation on non-standard template file names, add your own `lsp.kubernetes-language-server.settings.yaml.schemas` override.
+By default, the bundled schema association targets Kubernetes-specific suffixes. If you want schema validation on non-standard file names, add your own `lsp.kubernetes-language-server.settings.yaml.schemas` override.
 
 ```json
 {
