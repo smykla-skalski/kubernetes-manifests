@@ -86,6 +86,14 @@ pub fn default_workspace_configuration() -> Value {
     })
 }
 
+pub fn additional_yaml_server_configuration() -> Value {
+    json!({
+        "yaml": {
+            "schemas": default_schemas()
+        }
+    })
+}
+
 pub fn merged_workspace_configuration(
     user_settings: Option<Value>,
     worktree_root: Option<&str>,
@@ -228,6 +236,29 @@ mod tests {
         assert!(
             tags.contains(&json!("!Ref")),
             "customTags should include !Ref",
+        );
+    }
+
+    #[test]
+    fn additional_yaml_config_injects_kubernetes_schemas() {
+        let configuration = additional_yaml_server_configuration();
+        let schemas = configuration["yaml"]["schemas"].as_object().unwrap();
+
+        assert!(
+            schemas.contains_key("kubernetes"),
+            "additional config should inject kubernetes schema",
+        );
+        assert!(
+            schemas.contains_key("https://json.schemastore.org/kustomization.json"),
+            "additional config should inject kustomization schema",
+        );
+        assert!(
+            schemas.contains_key("https://json.schemastore.org/chart.json"),
+            "additional config should inject chart schema",
+        );
+        assert!(
+            !schemas.contains_key("yaml"),
+            "additional config should not override yaml server settings",
         );
     }
 

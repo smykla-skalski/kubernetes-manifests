@@ -8,7 +8,7 @@ mod templates;
 use context_server::KubernetesContextServer;
 use helm_language_server::HelmLanguageServer;
 use language_server::{KubernetesLanguageServer, SERVER_NAME};
-use settings::merged_workspace_configuration;
+use settings::{additional_yaml_server_configuration, merged_workspace_configuration};
 use templates::{resource_kinds, template_for_kind};
 use zed_extension_api::{
     self as zed,
@@ -163,6 +163,18 @@ impl zed::Extension for KubernetesExtension {
                 .ok()
                 .and_then(|settings| settings.initialization_options),
         )
+    }
+
+    fn language_server_additional_workspace_configuration(
+        &mut self,
+        _language_server_id: &LanguageServerId,
+        target_language_server_id: &LanguageServerId,
+        _worktree: &zed::Worktree,
+    ) -> Result<Option<JsonValue>> {
+        if target_language_server_id.as_ref() == "yaml-language-server" {
+            return Ok(Some(additional_yaml_server_configuration()));
+        }
+        Ok(None)
     }
 
     fn complete_slash_command_argument(
