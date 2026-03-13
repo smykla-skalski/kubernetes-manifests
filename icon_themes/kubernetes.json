@@ -11,11 +11,15 @@
         "k8s.yml": "kubernetes",
         "kubernetes.yaml": "kubernetes",
         "kubernetes.yml": "kubernetes",
+        "kustomize.yaml": "kubernetes",
+        "kustomize.yml": "kubernetes",
         "helm.yaml": "helm",
         "helm.yml": "helm"
       },
       "file_stems": {
         "kustomization": "kubernetes",
+        "skaffold": "kubernetes",
+        "Tiltfile": "kubernetes",
         "Chart": "helm",
         "values": "helm",
         "helmfile": "helm"
@@ -26,7 +30,10 @@
         "manifests": "kubernetes",
         "k8s": "kubernetes",
         "kubernetes": "kubernetes",
-        "deploy": "kubernetes"
+        "deploy": "kubernetes",
+        "base": "kubernetes",
+        "overlays": "kubernetes",
+        "patches": "kubernetes"
       },
       "file_icons": {
         "kubernetes": {
@@ -45,11 +52,15 @@
         "k8s.yml": "kubernetes",
         "kubernetes.yaml": "kubernetes",
         "kubernetes.yml": "kubernetes",
+        "kustomize.yaml": "kubernetes",
+        "kustomize.yml": "kubernetes",
         "helm.yaml": "helm",
         "helm.yml": "helm"
       },
       "file_stems": {
         "kustomization": "kubernetes",
+        "skaffold": "kubernetes",
+        "Tiltfile": "kubernetes",
         "Chart": "helm",
         "values": "helm",
         "helmfile": "helm"
@@ -60,7 +71,10 @@
         "manifests": "kubernetes",
         "k8s": "kubernetes",
         "kubernetes": "kubernetes",
-        "deploy": "kubernetes"
+        "deploy": "kubernetes",
+        "base": "kubernetes",
+        "overlays": "kubernetes",
+        "patches": "kubernetes"
       },
       "file_icons": {
         "kubernetes": {

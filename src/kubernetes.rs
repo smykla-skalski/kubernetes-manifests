@@ -390,7 +390,14 @@ mod tests {
             .as_object()
             .expect("icon theme should define file_icons");
 
-        for suffix in ["k8s.yaml", "k8s.yml", "kubernetes.yaml", "kubernetes.yml"] {
+        for suffix in [
+            "k8s.yaml",
+            "k8s.yml",
+            "kubernetes.yaml",
+            "kubernetes.yml",
+            "kustomize.yaml",
+            "kustomize.yml",
+        ] {
             assert_eq!(
                 suffixes.get(suffix).and_then(JsonValue::as_str),
                 Some("kubernetes"),
@@ -417,10 +424,13 @@ mod tests {
         let stems = theme["file_stems"]
             .as_object()
             .expect("icon theme should define file_stems");
-        assert_eq!(
-            stems.get("kustomization").and_then(JsonValue::as_str),
-            Some("kubernetes"),
-        );
+        for stem in ["kustomization", "skaffold", "Tiltfile"] {
+            assert_eq!(
+                stems.get(stem).and_then(JsonValue::as_str),
+                Some("kubernetes"),
+                "icon theme should map {stem} stem to kubernetes icon",
+            );
+        }
         for stem in ["Chart", "values", "helmfile"] {
             assert_eq!(
                 stems.get(stem).and_then(JsonValue::as_str),
@@ -439,7 +449,15 @@ mod tests {
                 "icon theme should map {dir} directory to helm icon",
             );
         }
-        for dir in ["manifests", "k8s", "kubernetes", "deploy"] {
+        for dir in [
+            "manifests",
+            "k8s",
+            "kubernetes",
+            "deploy",
+            "base",
+            "overlays",
+            "patches",
+        ] {
             assert_eq!(
                 dirs.get(dir).and_then(JsonValue::as_str),
                 Some("kubernetes"),
