@@ -75,7 +75,20 @@ key: (flow_node
     (plain_scalar
       (string_scalar) @attribute))
   (#any-of? @attribute
-    "name" "namespace" "labels" "annotations" "containers" "initContainers" "volumes" "volumeMounts"
-    "ports" "env" "envFrom" "resources" "selector" "matchLabels" "matchExpressions" "replicas"
-    "strategy" "image" "imagePullPolicy" "command" "args" "livenessProbe" "readinessProbe"
-    "startupProbe" "requests" "limits" "serviceAccountName" "rules" "subjects" "roleRef"))
+    "name" "namespace" "labels" "annotations" "containers" "initContainers" "ephemeralContainers"
+    "volumes" "volumeMounts" "volumeDevices" "ports" "env" "envFrom" "resources" "selector"
+    "matchLabels" "matchExpressions" "replicas" "strategy" "image" "imagePullPolicy" "command"
+    "args" "workingDir" "lifecycle" "livenessProbe" "readinessProbe" "startupProbe" "requests"
+    "limits" "serviceAccountName" "rules" "subjects" "roleRef" "restartPolicy"
+    "terminationGracePeriodSeconds" "dnsPolicy" "securityContext" "nodeSelector" "nodeName"
+    "affinity" "tolerations" "topologySpreadConstraints" "priorityClassName" "schedulerName"
+    "runtimeClassName" "imagePullSecrets" "hostNetwork" "hostPID" "hostIPC" "shareProcessNamespace"
+    "clusterIP" "externalIPs" "externalName" "loadBalancerIP" "sessionAffinity" "type"
+    "storageClassName" "accessModes" "volumeName" "volumeMode" "initialDelaySeconds"
+    "timeoutSeconds" "periodSeconds" "successThreshold" "failureThreshold" "exec" "httpGet"
+    "tcpSocket" "grpc" "runAsUser" "runAsGroup" "runAsNonRoot" "readOnlyRootFilesystem"
+    "capabilities" "allowPrivilegeEscalation" "automountServiceAccountToken" "postStart" "preStop"
+    "configMap" "secret" "emptyDir" "hostPath" "persistentVolumeClaim" "projected" "servicePort"
+    "targetPort" "containerPort" "protocol" "path" "pathType" "host" "backend" "minReplicas"
+    "maxReplicas" "metrics" "scaleTargetRef" "podSelector" "policyTypes" "ingress" "egress"
+    "webhooks" "ownerReferences" "finalizers"))
