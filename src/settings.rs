@@ -35,6 +35,12 @@ pub fn default_workspace_configuration() -> Value {
             "editor.tabSize": 2
         },
         "yaml": {
+            "schemaStore": {
+                "enable": true
+            },
+            "validate": true,
+            "hover": true,
+            "completion": true,
             "format": {
                 "enable": true
             },
@@ -142,6 +148,16 @@ mod tests {
             configuration["yaml"]["schemas"]["kubernetes"],
             default_schema_globs(),
         );
+    }
+
+    #[test]
+    fn default_config_enables_schema_store_and_validation() {
+        let configuration = default_workspace_configuration();
+
+        assert_eq!(configuration["yaml"]["schemaStore"]["enable"], true);
+        assert_eq!(configuration["yaml"]["validate"], true);
+        assert_eq!(configuration["yaml"]["hover"], true);
+        assert_eq!(configuration["yaml"]["completion"], true);
     }
 
     #[test]
