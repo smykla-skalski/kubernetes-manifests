@@ -1,3 +1,4 @@
+mod docs;
 mod language_server;
 mod settings;
 mod templates;
@@ -6,7 +7,7 @@ use language_server::{KubernetesLanguageServer, SERVER_NAME};
 use settings::merged_workspace_configuration;
 use templates::{resource_kinds, template_for_kind};
 use zed_extension_api::{
-    self as zed, lsp::Completion, settings::LspSettings, CodeLabel, CodeLabelSpan,
+    self as zed, lsp::Completion, settings::LspSettings, CodeLabel, CodeLabelSpan, KeyValueStore,
     LanguageServerId, Result, SlashCommand, SlashCommandArgumentCompletion, SlashCommandOutput,
     SlashCommandOutputSection,
 };
@@ -169,6 +170,25 @@ impl zed::Extension for KubernetesExtension {
             filter_range: (0..name_len).into(),
             code,
         })
+    }
+
+    fn suggest_docs_packages(&self, provider: String) -> Result<Vec<String>, String> {
+        if !docs::is_docs_provider(&provider) {
+            return Ok(Vec::new());
+        }
+        Ok(docs::suggest_packages())
+    }
+
+    fn index_docs(
+        &self,
+        provider: String,
+        package: String,
+        database: &KeyValueStore,
+    ) -> Result<(), String> {
+        if !docs::is_docs_provider(&provider) {
+            return Err(format!("Unknown docs provider: {provider}"));
+        }
+        docs::index_package(&package, database)
     }
 }
 
