@@ -163,28 +163,85 @@ fn index_fallback(package: &str, anchor: &str, database: &KeyValueStore) -> zed:
 
 fn extract_text_content(html: &str) -> String {
     let mut result = String::new();
+    let mut tag_name = String::new();
     let mut in_tag = false;
+    let mut collecting_tag_name = false;
+    let mut is_closing_tag = false;
+    let mut in_preformatted = false;
+    let mut skip_content = false;
     let mut line_count = 0;
 
     for ch in html.chars() {
+        if line_count > 200 {
+            break;
+        }
+
         match ch {
-            '<' => in_tag = true,
-            '>' => in_tag = false,
-            '\n' if !in_tag => {
-                if !result.ends_with('\n') {
-                    result.push('\n');
-                    line_count += 1;
-                }
-                if line_count > 200 {
-                    break;
+            '<' => {
+                in_tag = true;
+                collecting_tag_name = true;
+                is_closing_tag = false;
+                tag_name.clear();
+            }
+            '/' if in_tag && collecting_tag_name && tag_name.is_empty() => {
+                is_closing_tag = true;
+            }
+            '>' => {
+                in_tag = false;
+                collecting_tag_name = false;
+                let tag = tag_name.to_ascii_lowercase();
+
+                match tag.as_str() {
+                    "br" => {
+                        push_newline(&mut result, &mut line_count);
+                    }
+                    "hr" => {
+                        push_newline(&mut result, &mut line_count);
+                        result.push_str("---");
+                        push_newline(&mut result, &mut line_count);
+                    }
+                    "li" if !is_closing_tag => {
+                        push_newline(&mut result, &mut line_count);
+                        result.push_str("- ");
+                    }
+                    "p" | "div" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" if is_closing_tag => {
+                        push_newline(&mut result, &mut line_count);
+                    }
+                    "pre" | "code" => {
+                        in_preformatted = !is_closing_tag;
+                    }
+                    "script" | "style" => {
+                        skip_content = !is_closing_tag;
+                    }
+                    _ => {}
                 }
             }
-            _ if !in_tag => result.push(ch),
-            _ => {}
+            ' ' | '\t' if in_tag && collecting_tag_name => {
+                collecting_tag_name = false;
+            }
+            _ if in_tag && collecting_tag_name => {
+                tag_name.push(ch);
+            }
+            _ if in_tag || skip_content => {}
+            '\n' if in_preformatted => {
+                result.push('\n');
+                line_count += 1;
+            }
+            '\n' => {
+                push_newline(&mut result, &mut line_count);
+            }
+            _ => result.push(ch),
         }
     }
 
     result.trim().to_string()
+}
+
+fn push_newline(result: &mut String, line_count: &mut usize) {
+    if !result.ends_with('\n') {
+        result.push('\n');
+        *line_count += 1;
+    }
 }
 
 #[cfg(test)]
@@ -210,7 +267,48 @@ mod tests {
     fn extract_text_content_strips_html_tags() {
         let html = "<h1>Title</h1><p>Some <b>bold</b> text</p>";
         let text = extract_text_content(html);
-        assert_eq!(text, "TitleSome bold text");
+        assert_eq!(text, "Title\nSome bold text");
+    }
+
+    #[test]
+    fn extract_text_content_preserves_list_items() {
+        let html = "<ul><li>first</li><li>second</li><li>third</li></ul>";
+        let text = extract_text_content(html);
+        assert!(
+            text.contains("- first"),
+            "list items should be prefixed with dash"
+        );
+        assert!(text.contains("- second"));
+        assert!(text.contains("- third"));
+    }
+
+    #[test]
+    fn extract_text_content_preserves_preformatted_blocks() {
+        let html = "<pre><code>line1\nline2\n  indented</code></pre>";
+        let text = extract_text_content(html);
+        assert!(
+            text.contains("line1\nline2\n  indented"),
+            "preformatted blocks should preserve whitespace literally",
+        );
+    }
+
+    #[test]
+    fn extract_text_content_inserts_paragraph_breaks() {
+        let html = "<p>First paragraph.</p><p>Second paragraph.</p>";
+        let text = extract_text_content(html);
+        assert!(
+            text.contains("First paragraph.\nSecond paragraph."),
+            "closing </p> should emit a newline between paragraphs",
+        );
+    }
+
+    #[test]
+    fn extract_text_content_skips_script_content() {
+        let html = "<p>Hello</p><script>var x = 1;</script><p>World</p>";
+        let text = extract_text_content(html);
+        assert!(!text.contains("var x"), "script content should be skipped");
+        assert!(text.contains("Hello"));
+        assert!(text.contains("World"));
     }
 
     #[test]
