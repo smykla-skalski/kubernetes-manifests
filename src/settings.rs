@@ -7,6 +7,7 @@ struct CuratedKubernetesSettings {
     include_default_schemas: bool,
     inject_into_yaml_language_server: bool,
     schema_associations: Map<String, Value>,
+    workspace_overrides: Value,
 }
 
 impl Default for CuratedKubernetesSettings {
@@ -15,6 +16,7 @@ impl Default for CuratedKubernetesSettings {
             include_default_schemas: true,
             inject_into_yaml_language_server: true,
             schema_associations: Map::new(),
+            workspace_overrides: Value::Object(Map::new()),
         }
     }
 }
@@ -170,39 +172,7 @@ pub fn kubernetes_workspace_configuration_schema() -> Value {
         "default": {},
         "additionalProperties": true,
         "properties": {
-            "kubernetes": {
-                "type": "object",
-                "description": "Extension-owned settings that control Kubernetes schema defaults and how this extension injects schema associations into built-in YAML buffers.",
-                "default": {
-                    "includeDefaultSchemas": true,
-                    "injectIntoYamlLanguageServer": true,
-                    "schemaAssociations": {}
-                },
-                "additionalProperties": false,
-                "properties": {
-                    "includeDefaultSchemas": {
-                        "type": "boolean",
-                        "default": true,
-                        "description": "Keep the extension's default Kubernetes, Kustomize, and Helm chart schema associations inside Kubernetes-mode buffers."
-                    },
-                    "injectIntoYamlLanguageServer": {
-                        "type": "boolean",
-                        "default": true,
-                        "description": "Mirror the extension-owned schema associations into built-in yaml-language-server for plain YAML buffers that stay in YAML mode."
-                    },
-                    "schemaAssociations": {
-                        "type": "object",
-                        "default": {},
-                        "description": "Additional schema-to-glob associations merged into yaml.schemas. Relative schema paths are resolved against the worktree root and ~/ paths are resolved against HOME.",
-                        "additionalProperties": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
+            "kubernetes": kubernetes_curated_settings_schema(),
             "yaml": raw_passthrough_schema("Raw yaml-language-server workspace settings applied only to Kubernetes-mode buffers. These settings override the extension defaults and the curated kubernetes block."),
             "[yaml]": raw_passthrough_schema("Editor settings applied to Kubernetes-mode YAML buffers.")
         }
@@ -236,6 +206,324 @@ fn raw_passthrough_schema(description: &str) -> Value {
         "description": description,
         "default": {},
         "additionalProperties": true
+    })
+}
+
+fn kubernetes_curated_settings_schema() -> Value {
+    object_schema(
+        "Extension-owned settings for the Kubernetes editing experience. These cover the most important yaml-language-server knobs with typed Settings Editor support, while raw settings.yaml remains the escape hatch for niche upstream options.",
+        Some(kubernetes_curated_settings_defaults()),
+        false,
+        &kubernetes_curated_settings_properties(),
+    )
+}
+
+fn kubernetes_curated_settings_defaults() -> Value {
+    json!({
+        "includeDefaultSchemas": true,
+        "injectIntoYamlLanguageServer": true,
+        "schemaAssociations": {},
+        "yamlVersion": "1.1",
+        "validate": true,
+        "hover": true,
+        "completion": true,
+        "disableDefaultProperties": true,
+        "maxItemsComputed": 10000,
+        "customTags": default_custom_tags(),
+        "schemaStore": {
+            "enable": true
+        },
+        "style": {
+            "flowMapping": "allow",
+            "flowSequence": "allow"
+        },
+        "format": {
+            "enable": true,
+            "bracketSpacing": true,
+            "printWidth": 120
+        },
+        "editor": {
+            "tabSize": 2
+        }
+    })
+}
+
+fn kubernetes_curated_settings_properties() -> Value {
+    json!({
+        "includeDefaultSchemas": boolean_schema(
+            "Keep the extension's default Kubernetes, Kustomize, and Helm chart schema associations inside Kubernetes-mode buffers.",
+            Some(true),
+        ),
+        "injectIntoYamlLanguageServer": boolean_schema(
+            "Mirror the extension-owned schema associations into built-in yaml-language-server for plain YAML buffers that stay in YAML mode.",
+            Some(true),
+        ),
+        "schemaAssociations": schema_associations_schema(),
+        "yamlVersion": string_enum_schema(
+            "YAML version used for Kubernetes-mode buffers.",
+            Some("1.1"),
+            &["1.1", "1.2"],
+        ),
+        "validate": boolean_schema(
+            "Enable diagnostics and schema validation in Kubernetes-mode buffers.",
+            Some(true),
+        ),
+        "hover": boolean_schema(
+            "Enable hover information in Kubernetes-mode buffers.",
+            Some(true),
+        ),
+        "completion": boolean_schema(
+            "Enable completion in Kubernetes-mode buffers.",
+            Some(true),
+        ),
+        "disableDefaultProperties": boolean_schema(
+            "Hide inferred placeholder properties from completion items.",
+            Some(true),
+        ),
+        "maxItemsComputed": integer_schema(
+            "Maximum number of outline, folding, or breadcrumb items computed by yaml-language-server.",
+            Some(10_000),
+            Some(0),
+        ),
+        "customTags": string_array_schema(
+            "Custom YAML tags understood by yaml-language-server.",
+            Some(default_custom_tags()),
+        ),
+        "keyOrdering": boolean_schema(
+            "Enable key ordering validation.",
+            None,
+        ),
+        "schemaStore": curated_schema_store_schema(),
+        "kubernetesCRDStore": curated_kubernetes_crd_store_schema(),
+        "suggest": curated_suggest_schema(),
+        "style": curated_style_schema(),
+        "format": curated_format_schema(),
+        "editor": curated_editor_schema()
+    })
+}
+
+fn curated_schema_store_schema() -> Value {
+    object_schema(
+        "Schema Store settings for Kubernetes-mode buffers.",
+        Some(json!({
+            "enable": true
+        })),
+        false,
+        &json!({
+            "enable": boolean_schema(
+                "Enable Schema Store lookups.",
+                Some(true),
+            ),
+            "url": string_schema(
+                "Override the Schema Store catalog URL.",
+                None,
+            )
+        }),
+    )
+}
+
+fn curated_kubernetes_crd_store_schema() -> Value {
+    object_schema(
+        "Kubernetes CRD store integration for fetching remote CRD schemas.",
+        None,
+        false,
+        &json!({
+            "enable": boolean_schema(
+                "Enable remote Kubernetes CRD schema lookups.",
+                None,
+            ),
+            "url": string_schema(
+                "Override the Kubernetes CRD store base URL.",
+                None,
+            )
+        }),
+    )
+}
+
+fn curated_suggest_schema() -> Value {
+    object_schema(
+        "Completion suggestion behavior.",
+        None,
+        false,
+        &json!({
+            "parentSkeletonSelectedFirst": boolean_schema(
+                "Prefer selecting the parent skeleton completion before leaf properties.",
+                None,
+            )
+        }),
+    )
+}
+
+fn curated_style_schema() -> Value {
+    object_schema(
+        "Formatting style controls for flow collections.",
+        Some(json!({
+            "flowMapping": "allow",
+            "flowSequence": "allow"
+        })),
+        false,
+        &json!({
+            "flowMapping": string_enum_schema(
+                "Allow or forbid flow-style mappings such as {a: 1}.",
+                Some("allow"),
+                &["allow", "forbid"],
+            ),
+            "flowSequence": string_enum_schema(
+                "Allow or forbid flow-style sequences such as [a, b].",
+                Some("allow"),
+                &["allow", "forbid"],
+            )
+        }),
+    )
+}
+
+fn curated_format_schema() -> Value {
+    object_schema(
+        "Formatting controls for Kubernetes-mode buffers.",
+        Some(json!({
+            "enable": true,
+            "bracketSpacing": true,
+            "printWidth": 120
+        })),
+        false,
+        &json!({
+            "enable": boolean_schema(
+                "Enable formatting.",
+                Some(true),
+            ),
+            "singleQuote": boolean_schema(
+                "Prefer single quotes when formatting.",
+                None,
+            ),
+            "bracketSpacing": boolean_schema(
+                "Insert spaces inside flow collection brackets.",
+                Some(true),
+            ),
+            "printWidth": integer_schema(
+                "Preferred line width used during formatting.",
+                Some(120),
+                Some(1),
+            ),
+            "proseWrap": string_enum_schema(
+                "How prose content should wrap when formatting.",
+                None,
+                &["preserve", "never", "always"],
+            )
+        }),
+    )
+}
+
+fn curated_editor_schema() -> Value {
+    object_schema(
+        "Editor defaults applied to Kubernetes-mode YAML buffers.",
+        Some(json!({
+            "tabSize": 2
+        })),
+        false,
+        &json!({
+            "tabSize": integer_schema(
+                "Indent size for Kubernetes-mode buffers.",
+                Some(2),
+                Some(1),
+            ),
+            "formatOnType": boolean_schema(
+                "Enable format-on-type for Kubernetes-mode buffers.",
+                None,
+            )
+        }),
+    )
+}
+
+fn boolean_schema(description: &str, default: Option<bool>) -> Value {
+    let mut schema = json!({
+        "type": "boolean",
+        "description": description,
+    });
+    if let Some(default) = default {
+        schema["default"] = json!(default);
+    }
+    schema
+}
+
+fn integer_schema(description: &str, default: Option<i64>, minimum: Option<i64>) -> Value {
+    let mut schema = json!({
+        "type": "integer",
+        "description": description,
+    });
+    if let Some(default) = default {
+        schema["default"] = json!(default);
+    }
+    if let Some(minimum) = minimum {
+        schema["minimum"] = json!(minimum);
+    }
+    schema
+}
+
+fn string_schema(description: &str, default: Option<&str>) -> Value {
+    let mut schema = json!({
+        "type": "string",
+        "description": description,
+    });
+    if let Some(default) = default {
+        schema["default"] = json!(default);
+    }
+    schema
+}
+
+fn string_enum_schema(description: &str, default: Option<&str>, values: &[&str]) -> Value {
+    let mut schema = string_schema(description, default);
+    schema["enum"] = Value::Array(
+        values
+            .iter()
+            .map(|value| Value::String((*value).to_string()))
+            .collect(),
+    );
+    schema
+}
+
+fn string_array_schema(description: &str, default: Option<Value>) -> Value {
+    let mut schema = json!({
+        "type": "array",
+        "description": description,
+        "items": {
+            "type": "string"
+        }
+    });
+    if let Some(default) = default {
+        schema["default"] = default;
+    }
+    schema
+}
+
+fn object_schema(
+    description: &str,
+    default: Option<Value>,
+    additional_properties: bool,
+    properties: &Value,
+) -> Value {
+    let mut schema = json!({
+        "type": "object",
+        "description": description,
+        "additionalProperties": additional_properties,
+        "properties": properties.clone(),
+    });
+    if let Some(default) = default {
+        schema["default"] = default;
+    }
+    schema
+}
+
+fn schema_associations_schema() -> Value {
+    json!({
+        "type": "object",
+        "default": {},
+        "description": "Additional schema-to-glob associations merged into yaml.schemas. Relative schema paths are resolved against the worktree root and ~/ paths are resolved against HOME.",
+        "additionalProperties": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
     })
 }
 
@@ -278,8 +566,184 @@ fn parse_curated_kubernetes_settings(settings: &Value) -> CuratedKubernetesSetti
             .schema_associations
             .clone_from(schema_associations);
     }
+    parse_curated_root_scalars(settings, &mut curated_settings.workspace_overrides);
+    parse_curated_schema_store_settings(settings, &mut curated_settings.workspace_overrides);
+    parse_curated_kubernetes_crd_store_settings(
+        settings,
+        &mut curated_settings.workspace_overrides,
+    );
+    parse_curated_suggest_settings(settings, &mut curated_settings.workspace_overrides);
+    parse_curated_style_settings(settings, &mut curated_settings.workspace_overrides);
+    parse_curated_format_settings(settings, &mut curated_settings.workspace_overrides);
+    parse_curated_editor_settings(settings, &mut curated_settings.workspace_overrides);
 
     curated_settings
+}
+
+fn parse_curated_root_scalars(settings: &Map<String, Value>, workspace_overrides: &mut Value) {
+    if let Some(yaml_version) = settings
+        .get("yamlVersion")
+        .and_then(Value::as_str)
+        .filter(|yaml_version| matches!(*yaml_version, "1.1" | "1.2"))
+    {
+        set_workspace_override(
+            workspace_overrides,
+            &["yaml", "yamlVersion"],
+            json!(yaml_version),
+        );
+    }
+
+    for setting_key in [
+        "validate",
+        "hover",
+        "completion",
+        "disableDefaultProperties",
+        "keyOrdering",
+    ] {
+        parse_curated_object_bool(
+            workspace_overrides,
+            settings,
+            setting_key,
+            &["yaml", setting_key],
+        );
+    }
+
+    parse_curated_object_integer(
+        workspace_overrides,
+        settings,
+        "maxItemsComputed",
+        non_negative_integer,
+        &["yaml", "maxItemsComputed"],
+    );
+
+    if let Some(custom_tags) = settings.get("customTags").and_then(string_array_value) {
+        set_workspace_override(workspace_overrides, &["yaml", "customTags"], custom_tags);
+    }
+}
+
+fn parse_curated_schema_store_settings(
+    settings: &Map<String, Value>,
+    workspace_overrides: &mut Value,
+) {
+    if let Some(Value::Object(schema_store)) = settings.get("schemaStore") {
+        parse_curated_object_bool(
+            workspace_overrides,
+            schema_store,
+            "enable",
+            &["yaml", "schemaStore", "enable"],
+        );
+        parse_curated_object_string(
+            workspace_overrides,
+            schema_store,
+            "url",
+            &["yaml", "schemaStore", "url"],
+        );
+    }
+}
+
+fn parse_curated_kubernetes_crd_store_settings(
+    settings: &Map<String, Value>,
+    workspace_overrides: &mut Value,
+) {
+    if let Some(Value::Object(kubernetes_crd_store)) = settings.get("kubernetesCRDStore") {
+        parse_curated_object_bool(
+            workspace_overrides,
+            kubernetes_crd_store,
+            "enable",
+            &["yaml", "kubernetesCRDStore", "enable"],
+        );
+        parse_curated_object_string(
+            workspace_overrides,
+            kubernetes_crd_store,
+            "url",
+            &["yaml", "kubernetesCRDStore", "url"],
+        );
+    }
+}
+
+fn parse_curated_suggest_settings(settings: &Map<String, Value>, workspace_overrides: &mut Value) {
+    if let Some(Value::Object(suggest)) = settings.get("suggest") {
+        parse_curated_object_bool(
+            workspace_overrides,
+            suggest,
+            "parentSkeletonSelectedFirst",
+            &["yaml", "suggest", "parentSkeletonSelectedFirst"],
+        );
+    }
+}
+
+fn parse_curated_style_settings(settings: &Map<String, Value>, workspace_overrides: &mut Value) {
+    if let Some(Value::Object(style)) = settings.get("style") {
+        parse_curated_object_string_enum(
+            workspace_overrides,
+            style,
+            "flowMapping",
+            &["allow", "forbid"],
+            &["yaml", "style", "flowMapping"],
+        );
+        parse_curated_object_string_enum(
+            workspace_overrides,
+            style,
+            "flowSequence",
+            &["allow", "forbid"],
+            &["yaml", "style", "flowSequence"],
+        );
+    }
+}
+
+fn parse_curated_format_settings(settings: &Map<String, Value>, workspace_overrides: &mut Value) {
+    if let Some(Value::Object(format)) = settings.get("format") {
+        parse_curated_object_bool(
+            workspace_overrides,
+            format,
+            "enable",
+            &["yaml", "format", "enable"],
+        );
+        parse_curated_object_bool(
+            workspace_overrides,
+            format,
+            "singleQuote",
+            &["yaml", "format", "singleQuote"],
+        );
+        parse_curated_object_bool(
+            workspace_overrides,
+            format,
+            "bracketSpacing",
+            &["yaml", "format", "bracketSpacing"],
+        );
+        parse_curated_object_integer(
+            workspace_overrides,
+            format,
+            "printWidth",
+            positive_integer,
+            &["yaml", "format", "printWidth"],
+        );
+        parse_curated_object_string_enum(
+            workspace_overrides,
+            format,
+            "proseWrap",
+            &["preserve", "never", "always"],
+            &["yaml", "format", "proseWrap"],
+        );
+    }
+}
+
+fn parse_curated_editor_settings(settings: &Map<String, Value>, workspace_overrides: &mut Value) {
+    if let Some(Value::Object(editor)) = settings.get("editor") {
+        parse_curated_object_integer(
+            workspace_overrides,
+            editor,
+            "tabSize",
+            positive_integer,
+            &["[yaml]", "editor.tabSize"],
+        );
+        parse_curated_object_bool(
+            workspace_overrides,
+            editor,
+            "formatOnType",
+            &["[yaml]", "editor.formatOnType"],
+        );
+    }
 }
 
 fn apply_curated_workspace_settings(
@@ -288,6 +752,8 @@ fn apply_curated_workspace_settings(
     worktree_root: Option<&str>,
     home_dir: Option<&str>,
 ) {
+    merge_json_value_into(curated_settings.workspace_overrides.clone(), configuration);
+
     let schemas = ensure_yaml_schemas_object(configuration);
     if !curated_settings.include_default_schemas {
         schemas.clear();
@@ -299,6 +765,100 @@ fn apply_curated_workspace_settings(
         home_dir,
     );
     merge_json_object_into(resolved_schema_associations, schemas);
+}
+
+fn parse_curated_object_bool(
+    workspace_overrides: &mut Value,
+    settings: &Map<String, Value>,
+    key: &str,
+    path: &[&str],
+) {
+    if let Some(value) = settings.get(key).and_then(Value::as_bool) {
+        set_workspace_override(workspace_overrides, path, json!(value));
+    }
+}
+
+fn parse_curated_object_string(
+    workspace_overrides: &mut Value,
+    settings: &Map<String, Value>,
+    key: &str,
+    path: &[&str],
+) {
+    if let Some(value) = settings.get(key).and_then(Value::as_str) {
+        set_workspace_override(workspace_overrides, path, json!(value));
+    }
+}
+
+fn parse_curated_object_string_enum(
+    workspace_overrides: &mut Value,
+    settings: &Map<String, Value>,
+    key: &str,
+    allowed_values: &[&str],
+    path: &[&str],
+) {
+    if let Some(value) = settings
+        .get(key)
+        .and_then(Value::as_str)
+        .filter(|value| allowed_values.contains(value))
+    {
+        set_workspace_override(workspace_overrides, path, json!(value));
+    }
+}
+
+fn parse_curated_object_integer(
+    workspace_overrides: &mut Value,
+    settings: &Map<String, Value>,
+    key: &str,
+    parser: fn(&Value) -> Option<i64>,
+    path: &[&str],
+) {
+    if let Some(value) = settings.get(key).and_then(parser) {
+        set_workspace_override(workspace_overrides, path, json!(value));
+    }
+}
+
+fn string_array_value(value: &Value) -> Option<Value> {
+    let values = value.as_array()?;
+    let mut strings = Vec::with_capacity(values.len());
+    for value in values {
+        strings.push(Value::String(value.as_str()?.to_string()));
+    }
+    Some(Value::Array(strings))
+}
+
+fn positive_integer(value: &Value) -> Option<i64> {
+    value.as_i64().filter(|value| *value > 0)
+}
+
+fn non_negative_integer(value: &Value) -> Option<i64> {
+    value.as_i64().filter(|value| *value >= 0)
+}
+
+fn set_workspace_override(workspace_overrides: &mut Value, path: &[&str], value: Value) {
+    let mut current = workspace_overrides;
+    for segment in &path[..path.len().saturating_sub(1)] {
+        if !current.is_object() {
+            *current = Value::Object(Map::new());
+        }
+
+        let current_object = current
+            .as_object_mut()
+            .expect("workspace overrides should remain objects");
+        current = current_object
+            .entry((*segment).to_string())
+            .or_insert_with(|| Value::Object(Map::new()));
+    }
+
+    if !current.is_object() {
+        *current = Value::Object(Map::new());
+    }
+
+    if let Some(last_segment) = path.last() {
+        current
+            .as_object_mut()
+            .expect("workspace overrides should remain objects")
+            .insert((*last_segment).to_string(), value);
+    }
 }
 
 fn ensure_yaml_schemas_object(configuration: &mut Value) -> &mut Map<String, Value> {
@@ -627,15 +1187,114 @@ mod tests {
     }
 
     #[test]
+    fn curated_settings_can_override_core_yaml_language_server_defaults() {
+        let configuration = kubernetes_workspace_configuration(
+            Some(json!({
+                "kubernetes": {
+                    "yamlVersion": "1.2",
+                    "validate": false,
+                    "hover": false,
+                    "completion": false,
+                    "disableDefaultProperties": false,
+                    "maxItemsComputed": 42,
+                    "customTags": [],
+                    "keyOrdering": true
+                }
+            })),
+            None,
+            None,
+        );
+
+        assert_eq!(configuration["yaml"]["yamlVersion"], "1.2");
+        assert_eq!(configuration["yaml"]["validate"], false);
+        assert_eq!(configuration["yaml"]["hover"], false);
+        assert_eq!(configuration["yaml"]["completion"], false);
+        assert_eq!(configuration["yaml"]["disableDefaultProperties"], false);
+        assert_eq!(configuration["yaml"]["maxItemsComputed"], 42);
+        assert_eq!(configuration["yaml"]["customTags"], json!([]));
+        assert_eq!(configuration["yaml"]["keyOrdering"], true);
+    }
+
+    #[test]
+    fn curated_settings_can_override_nested_yaml_language_server_defaults() {
+        let configuration = kubernetes_workspace_configuration(
+            Some(json!({
+                "kubernetes": {
+                    "schemaStore": {
+                        "enable": false,
+                        "url": "https://example.com/schema-store.json"
+                    },
+                    "kubernetesCRDStore": {
+                        "enable": true,
+                        "url": "https://example.com/crd-store"
+                    },
+                    "suggest": {
+                        "parentSkeletonSelectedFirst": true
+                    },
+                    "style": {
+                        "flowMapping": "forbid",
+                        "flowSequence": "forbid"
+                    },
+                    "format": {
+                        "enable": false,
+                        "singleQuote": true,
+                        "bracketSpacing": false,
+                        "printWidth": 88,
+                        "proseWrap": "never"
+                    },
+                    "editor": {
+                        "tabSize": 4,
+                        "formatOnType": true
+                    }
+                }
+            })),
+            None,
+            None,
+        );
+
+        assert_eq!(configuration["yaml"]["schemaStore"]["enable"], false);
+        assert_eq!(
+            configuration["yaml"]["schemaStore"]["url"],
+            "https://example.com/schema-store.json",
+        );
+        assert_eq!(configuration["yaml"]["kubernetesCRDStore"]["enable"], true);
+        assert_eq!(
+            configuration["yaml"]["kubernetesCRDStore"]["url"],
+            "https://example.com/crd-store",
+        );
+        assert_eq!(
+            configuration["yaml"]["suggest"]["parentSkeletonSelectedFirst"],
+            true,
+        );
+        assert_eq!(configuration["yaml"]["style"]["flowMapping"], "forbid");
+        assert_eq!(configuration["yaml"]["style"]["flowSequence"], "forbid");
+        assert_eq!(configuration["yaml"]["format"]["enable"], false);
+        assert_eq!(configuration["yaml"]["format"]["singleQuote"], true);
+        assert_eq!(configuration["yaml"]["format"]["bracketSpacing"], false);
+        assert_eq!(configuration["yaml"]["format"]["printWidth"], 88);
+        assert_eq!(configuration["yaml"]["format"]["proseWrap"], "never");
+        assert_eq!(configuration["[yaml]"]["editor.tabSize"], 4);
+        assert_eq!(configuration["[yaml]"]["editor.formatOnType"], true);
+    }
+
+    #[test]
     fn raw_yaml_settings_override_curated_settings() {
         let configuration = kubernetes_workspace_configuration(
             Some(json!({
                 "kubernetes": {
+                    "validate": false,
+                    "editor": {
+                        "tabSize": 4
+                    },
                     "schemaAssociations": {
                         "./schemas/custom.json": ["crds/*.yaml"]
                     }
                 },
+                "[yaml]": {
+                    "editor.tabSize": 8
+                },
                 "yaml": {
+                    "validate": true,
                     "schemas": {
                         "./schemas/custom.json": ["overrides/*.yaml"]
                     }
@@ -649,6 +1308,8 @@ mod tests {
             configuration["yaml"]["schemas"]["/home/user/project/schemas/custom.json"],
             json!(["overrides/*.yaml"]),
         );
+        assert_eq!(configuration["yaml"]["validate"], true);
+        assert_eq!(configuration["[yaml]"]["editor.tabSize"], 8);
     }
 
     #[test]
@@ -916,6 +1577,25 @@ mod tests {
         assert_eq!(
             schema["properties"]["kubernetes"]["properties"]["schemaAssociations"]["type"],
             "object",
+        );
+        assert_eq!(
+            schema["properties"]["kubernetes"]["properties"]["schemaStore"]["properties"]["enable"]
+                ["default"],
+            true,
+        );
+        assert_eq!(
+            schema["properties"]["kubernetes"]["properties"]["format"]["properties"]["printWidth"]
+                ["default"],
+            120,
+        );
+        assert_eq!(
+            schema["properties"]["kubernetes"]["properties"]["editor"]["properties"]["tabSize"]
+                ["default"],
+            2,
+        );
+        assert_eq!(
+            schema["properties"]["kubernetes"]["properties"]["yamlVersion"]["enum"],
+            json!(["1.1", "1.2"]),
         );
     }
 

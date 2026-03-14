@@ -17,7 +17,7 @@ Use the Settings Editor or a `settings.json` file to configure these surfaces:
 
 The Kubernetes language server now has two configuration layers under `lsp.kubernetes-language-server.settings`:
 
-- `settings.kubernetes` is extension-owned. It controls whether the repo's default schema associations stay enabled, whether those schema associations are mirrored into built-in `yaml-language-server`, and any extra schema associations you want to add.
+- `settings.kubernetes` is extension-owned. It covers the main YAML/Kubernetes editing experience with typed Settings Editor fields: schema defaults and injection, schema store and CRD store, validation, completion, formatting, editor defaults, key ordering, custom tags, and extra schema associations.
 - `settings.yaml` is raw `yaml-language-server` workspace configuration that applies only to Kubernetes-mode buffers.
 
 Precedence inside Kubernetes mode is `extension defaults < settings.kubernetes < settings.yaml`.
@@ -40,6 +40,21 @@ Precedence inside Kubernetes mode is `extension defaults < settings.kubernetes <
         "kubernetes": {
           "includeDefaultSchemas": true,
           "injectIntoYamlLanguageServer": true,
+          "validate": true,
+          "completion": true,
+          "schemaStore": {
+            "enable": true
+          },
+          "kubernetesCRDStore": {
+            "enable": true
+          },
+          "format": {
+            "enable": true,
+            "printWidth": 100
+          },
+          "editor": {
+            "tabSize": 2
+          },
           "schemaAssociations": {
             "./schemas/my-crd.json": ["crds/*.yaml"]
           }
@@ -57,7 +72,7 @@ Precedence inside Kubernetes mode is `extension defaults < settings.kubernetes <
 }
 ```
 
-Relative schema paths in both `settings.kubernetes.schemaAssociations` and `settings.yaml.schemas` resolve against the worktree root. `~/...` paths resolve against `HOME`. Only the extension-owned schema associations are mirrored into built-in `yaml-language-server`; raw `settings.yaml` stays scoped to Kubernetes-mode buffers.
+Relative schema paths in both `settings.kubernetes.schemaAssociations` and `settings.yaml.schemas` resolve against the worktree root. `~/...` paths resolve against `HOME`. Only the extension-owned schema associations are mirrored into built-in `yaml-language-server`; raw `settings.yaml` stays scoped to Kubernetes-mode buffers. Keep using raw `settings.yaml` for niche upstream options the curated layer does not expose yet, such as proxy settings or less-common YAML LS flags.
 
 To force generic YAML files into Kubernetes mode, add `file_types` to your Zed settings:
 
