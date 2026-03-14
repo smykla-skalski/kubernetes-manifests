@@ -7,42 +7,60 @@ use zed_extension_api::{
 const DOCS_PROVIDER: &str = "kubernetes";
 
 const KUBERNETES_DOCS_BASE: &str =
-    "https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31";
+    "https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35";
 
 const PACKAGES: &[(&str, &str)] = &[
-    ("Deployment", "#deployment-v1-apps"),
-    ("StatefulSet", "#statefulset-v1-apps"),
-    ("DaemonSet", "#daemonset-v1-apps"),
-    ("ReplicaSet", "#replicaset-v1-apps"),
-    ("Job", "#job-v1-batch"),
-    ("CronJob", "#cronjob-v1-batch"),
-    ("Pod", "#pod-v1-core"),
-    ("Service", "#service-v1-core"),
-    ("Ingress", "#ingress-v1-networking-k8s-io"),
-    ("ConfigMap", "#configmap-v1-core"),
-    ("Secret", "#secret-v1-core"),
-    ("PersistentVolumeClaim", "#persistentvolumeclaim-v1-core"),
-    ("PersistentVolume", "#persistentvolume-v1-core"),
-    ("StorageClass", "#storageclass-v1-storage-k8s-io"),
-    ("Namespace", "#namespace-v1-core"),
-    ("ServiceAccount", "#serviceaccount-v1-core"),
-    ("Role", "#role-v1-rbac-authorization-k8s-io"),
     ("ClusterRole", "#clusterrole-v1-rbac-authorization-k8s-io"),
-    ("RoleBinding", "#rolebinding-v1-rbac-authorization-k8s-io"),
     (
         "ClusterRoleBinding",
         "#clusterrolebinding-v1-rbac-authorization-k8s-io",
     ),
+    ("ConfigMap", "#configmap-v1-core"),
+    ("CronJob", "#cronjob-v1-batch"),
+    ("CSIDriver", "#csidriver-v1-storage-k8s-io"),
+    (
+        "CustomResourceDefinition",
+        "#customresourcedefinition-v1-apiextensions-k8s-io",
+    ),
+    ("DaemonSet", "#daemonset-v1-apps"),
+    ("Deployment", "#deployment-v1-apps"),
+    ("Endpoints", "#endpoints-v1-core"),
+    ("EndpointSlice", "#endpointslice-v1-discovery-k8s-io"),
+    ("Event", "#event-v1-events-k8s-io"),
     (
         "HorizontalPodAutoscaler",
         "#horizontalpodautoscaler-v2-autoscaling",
     ),
+    ("Ingress", "#ingress-v1-networking-k8s-io"),
+    ("Job", "#job-v1-batch"),
+    ("Lease", "#lease-v1-coordination-k8s-io"),
+    ("LimitRange", "#limitrange-v1-core"),
+    (
+        "MutatingWebhookConfiguration",
+        "#mutatingwebhookconfiguration-v1-admissionregistration-k8s-io",
+    ),
+    ("Namespace", "#namespace-v1-core"),
     ("NetworkPolicy", "#networkpolicy-v1-networking-k8s-io"),
     ("Node", "#node-v1-core"),
-    ("Endpoints", "#endpoints-v1-core"),
-    ("Event", "#event-v1-events-k8s-io"),
-    ("LimitRange", "#limitrange-v1-core"),
+    ("PersistentVolume", "#persistentvolume-v1-core"),
+    ("PersistentVolumeClaim", "#persistentvolumeclaim-v1-core"),
+    ("Pod", "#pod-v1-core"),
+    ("PodDisruptionBudget", "#poddisruptionbudget-v1-policy"),
+    ("PriorityClass", "#priorityclass-v1-scheduling-k8s-io"),
+    ("ReplicaSet", "#replicaset-v1-apps"),
     ("ResourceQuota", "#resourcequota-v1-core"),
+    ("Role", "#role-v1-rbac-authorization-k8s-io"),
+    ("RoleBinding", "#rolebinding-v1-rbac-authorization-k8s-io"),
+    ("Secret", "#secret-v1-core"),
+    ("Service", "#service-v1-core"),
+    ("ServiceAccount", "#serviceaccount-v1-core"),
+    ("StatefulSet", "#statefulset-v1-apps"),
+    ("StorageClass", "#storageclass-v1-storage-k8s-io"),
+    (
+        "ValidatingWebhookConfiguration",
+        "#validatingwebhookconfiguration-v1-admissionregistration-k8s-io",
+    ),
+    ("VolumeAttachment", "#volumeattachment-v1-storage-k8s-io"),
 ];
 
 pub fn is_docs_provider(provider: &str) -> bool {
