@@ -46,3 +46,10 @@ args = ["**"]
 [[capabilities]]
 kind = "npm:install"
 package = "yaml-language-server"
+
+# Helm language server and Kubernetes context server binaries are
+# downloaded from GitHub releases (mrjosh/helm-ls, strowk/mcp-k8s-go).
+[[capabilities]]
+kind = "download_file"
+host = "github.com"
+path = ["**"]
