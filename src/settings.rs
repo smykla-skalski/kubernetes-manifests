@@ -168,7 +168,7 @@ pub fn kubernetes_workspace_configuration_schema() -> Value {
         "properties": {
             "kubernetes": kubernetes_curated_settings_schema(),
             "yaml": raw_passthrough_schema("Raw yaml-language-server workspace settings applied only to Kubernetes-mode buffers. These settings override the extension defaults and the curated kubernetes block."),
-            "[yaml]": raw_passthrough_schema("Editor settings applied to Kubernetes-mode YAML buffers.")
+            "[yaml]": raw_passthrough_schema("Internal yaml-language-server editor settings used for formatting decisions (tab size, format-on-type). To configure Zed's editor behavior, use languages.Kubernetes in Zed settings.")
         }
     })
 }
@@ -578,7 +578,7 @@ fn curated_format_schema() -> Value {
 #[cfg(feature = "next")]
 fn curated_editor_schema() -> Value {
     object_schema(
-        "Editor defaults applied to Kubernetes-mode YAML buffers.",
+        "Internal yaml-language-server editor defaults used for formatting decisions. To configure Zed's editor behavior, use languages.Kubernetes in Zed settings.",
         Some(json!({
             "tabSize": 2
         })),
@@ -1823,6 +1823,23 @@ mod tests {
         assert_eq!(
             schema["properties"]["kubernetes"]["properties"]["yamlVersion"]["enum"],
             json!(["1.1", "1.2"]),
+        );
+    }
+
+    #[cfg(feature = "next")]
+    #[test]
+    fn workspace_schema_yaml_block_description_clarifies_scope() {
+        let schema = kubernetes_workspace_configuration_schema();
+        let desc = schema["properties"]["[yaml]"]["description"]
+            .as_str()
+            .expect("[yaml] should have a description");
+        assert!(
+            desc.contains("yaml-language-server"),
+            "description should mention yaml-language-server",
+        );
+        assert!(
+            desc.contains("languages.Kubernetes"),
+            "description should point to languages.Kubernetes",
         );
     }
 
