@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use url::Url;
 
 #[derive(Debug, Clone)]
@@ -1797,8 +1797,7 @@ mod tests {
             true,
         );
         assert_eq!(
-            schema["properties"]["kubernetes"]["properties"]["injectIntoYamlLanguageServer"]
-                ["default"],
+            schema["properties"]["kubernetes"]["properties"]["injectIntoYamlLanguageServer"]["default"],
             true,
         );
         assert_eq!(
@@ -1816,8 +1815,7 @@ mod tests {
             120,
         );
         assert_eq!(
-            schema["properties"]["kubernetes"]["properties"]["editor"]["properties"]["tabSize"]
-                ["default"],
+            schema["properties"]["kubernetes"]["properties"]["editor"]["properties"]["tabSize"]["default"],
             2,
         );
         assert_eq!(
@@ -1854,23 +1852,20 @@ mod tests {
         assert_eq!(helm_schema["type"], "object");
         assert_eq!(helm_schema["properties"]["helm-ls"]["type"], "object");
         assert_eq!(
-            helm_schema["properties"]["helm-ls"]["properties"]["yamlls"]["properties"]["enabled"]
-                ["default"],
+            helm_schema["properties"]["helm-ls"]["properties"]["yamlls"]["properties"]["enabled"]["default"],
             true,
         );
         assert_eq!(
-            helm_schema["properties"]["helm-ls"]["properties"]["valuesFiles"]["properties"]
-                ["mainValuesFile"]["default"],
+            helm_schema["properties"]["helm-ls"]["properties"]["valuesFiles"]["properties"]["mainValuesFile"]
+                ["default"],
             "values.yaml",
         );
         assert_eq!(
-            helm_schema["properties"]["helm-ls"]["properties"]["yamlls"]["properties"]["path"]
-                ["default"],
+            helm_schema["properties"]["helm-ls"]["properties"]["yamlls"]["properties"]["path"]["default"],
             "yaml-language-server",
         );
         assert_eq!(
-            helm_schema["properties"]["helm-ls"]["properties"]["yamlls"]["properties"]["config"]
-                ["type"],
+            helm_schema["properties"]["helm-ls"]["properties"]["yamlls"]["properties"]["config"]["type"],
             "object",
         );
     }

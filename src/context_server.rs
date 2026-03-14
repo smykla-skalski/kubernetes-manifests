@@ -2,9 +2,11 @@ use std::{env, fs};
 
 use serde_json::Value as JsonValue;
 use zed_extension_api::{
-    self as zed, settings::ContextServerSettings, Architecture, ContextServerConfiguration,
-    ContextServerId, DownloadedFileType, GithubReleaseOptions, Os, Project,
+    self as zed, Architecture, ContextServerConfiguration, ContextServerId, DownloadedFileType,
+    GithubReleaseOptions, Os, Project, settings::ContextServerSettings,
 };
+
+use crate::util;
 
 pub const CONTEXT_SERVER_NAME: &str = "kubernetes-context-server";
 const DEFAULT_BINARY: &str = "kubernetes-mcp-server";
@@ -58,20 +60,20 @@ impl KubernetesContextServer {
             }
         }
 
-        if !env.iter().any(|(k, _)| k == "KUBE_CONTEXT") {
-            if let Some(context) = current_kubectl_context() {
-                env.push(("KUBE_CONTEXT".to_string(), context));
-            }
+        if !env.iter().any(|(k, _)| k == "KUBE_CONTEXT")
+            && let Some(context) = current_kubectl_context()
+        {
+            env.push(("KUBE_CONTEXT".to_string(), context));
         }
 
         zed::Command { command, args, env }
     }
 
     fn downloaded_binary_path(&mut self) -> Option<String> {
-        if let Some(path) = self.cached_binary_path.as_ref() {
-            if fs::metadata(path).is_ok_and(|m| m.is_file()) {
-                return Some(path.clone());
-            }
+        if let Some(path) = self.cached_binary_path.as_ref()
+            && fs::metadata(path).is_ok_and(|m| m.is_file())
+        {
+            return Some(path.clone());
         }
 
         match download_binary() {
@@ -111,7 +113,7 @@ fn download_binary() -> Result<String, String> {
     zed::download_file(&asset.download_url, &version_dir, file_type)?;
     zed::make_file_executable(&binary_path)?;
 
-    remove_outdated_versions("mcp-k8s-go-", &version_dir);
+    util::remove_outdated_versions("mcp-k8s-go-", &version_dir).ok();
 
     Ok(binary_path)
 }
@@ -149,20 +151,6 @@ fn platform_asset_suffix(os: Os, arch: Architecture) -> String {
     format!("{os_str}_{arch_str}")
 }
 
-fn remove_outdated_versions(prefix: &str, current_dir: &str) {
-    if let Ok(entries) = fs::read_dir(".") {
-        for entry in entries.flatten() {
-            let name = entry.file_name();
-            let Some(name) = name.to_str() else {
-                continue;
-            };
-            if name.starts_with(prefix) && name != current_dir {
-                let _ = fs::remove_dir_all(name);
-            }
-        }
-    }
-}
-
 fn current_kubectl_context() -> Option<String> {
     use zed::process::Command as ProcessCommand;
 
@@ -177,11 +165,7 @@ fn current_kubectl_context() -> Option<String> {
     }
 
     let context = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    if context.is_empty() {
-        None
-    } else {
-        Some(context)
-    }
+    (!context.is_empty()).then_some(context)
 }
 
 fn default_kubeconfig_path() -> Option<String> {
@@ -200,26 +184,10 @@ fn push_env_if_set(
     key: &str,
     env_var: &str,
 ) {
-    if let Some(value) = settings.get(key).and_then(|v| v.as_str()) {
-        if !value.is_empty() {
-            env.push((env_var.to_string(), expand_tilde(value)));
-        }
-    }
-}
-
-fn expand_tilde(value: &str) -> String {
-    let (os, _) = zed::current_platform();
-    let home_var = match os {
-        Os::Windows => "USERPROFILE",
-        _ => "HOME",
-    };
-    expand_tilde_with_home(value, env::var(home_var).ok().as_deref())
-}
-
-fn expand_tilde_with_home(value: &str, home_dir: Option<&str>) -> String {
-    match (value.strip_prefix("~/"), home_dir) {
-        (Some(rest), Some(home)) => format!("{home}/{rest}"),
-        _ => value.to_string(),
+    if let Some(value) = settings.get(key).and_then(|v| v.as_str())
+        && !value.is_empty()
+    {
+        env.push((env_var.to_string(), util::expand_tilde(value)));
     }
 }
 
@@ -347,38 +315,6 @@ mod tests {
         assert_eq!(
             schema_keys, default_keys,
             "default settings keys should match schema properties",
-        );
-    }
-
-    #[test]
-    fn expand_tilde_with_home_expands_tilde_prefix() {
-        assert_eq!(
-            expand_tilde_with_home("~/.kube/config", Some("/home/user")),
-            "/home/user/.kube/config",
-        );
-    }
-
-    #[test]
-    fn expand_tilde_with_home_preserves_absolute_paths() {
-        assert_eq!(
-            expand_tilde_with_home("/etc/config", Some("/home/user")),
-            "/etc/config",
-        );
-    }
-
-    #[test]
-    fn expand_tilde_with_home_preserves_tilde_without_home() {
-        assert_eq!(
-            expand_tilde_with_home("~/.kube/config", None),
-            "~/.kube/config",
-        );
-    }
-
-    #[test]
-    fn expand_tilde_with_home_does_not_expand_other_user_tilde() {
-        assert_eq!(
-            expand_tilde_with_home("~other/.kube/config", Some("/home/user")),
-            "~other/.kube/config",
         );
     }
 

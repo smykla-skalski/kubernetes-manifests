@@ -1,10 +1,12 @@
 use std::fs;
 
 use zed_extension_api::{
-    self as zed,
+    self as zed, Architecture, DownloadedFileType, GithubReleaseOptions, LanguageServerId, Os,
+    Result,
     settings::{CommandSettings, LspSettings},
-    Architecture, DownloadedFileType, GithubReleaseOptions, LanguageServerId, Os, Result,
 };
+
+use crate::util;
 
 pub const SERVER_NAME: &str = "helm-language-server";
 const BINARY_NAME: &str = "helm_ls";
@@ -30,7 +32,7 @@ impl HelmLanguageServer {
             .ok()
             .and_then(|settings| settings.binary);
         let args = server_arguments(binary_settings.as_ref());
-        let env = merged_env(worktree.shell_env(), binary_settings.as_ref());
+        let env = util::merged_env(worktree.shell_env(), binary_settings.as_ref());
 
         if let Some(path) = binary_settings
             .as_ref()
@@ -60,10 +62,10 @@ impl HelmLanguageServer {
     }
 
     fn download_binary(&mut self) -> Result<String> {
-        if let Some(path) = self.cached_binary_path.as_ref() {
-            if fs::metadata(path).is_ok_and(|m| m.is_file()) {
-                return Ok(path.clone());
-            }
+        if let Some(path) = self.cached_binary_path.as_ref()
+            && fs::metadata(path).is_ok_and(|m| m.is_file())
+        {
+            return Ok(path.clone());
         }
 
         let (os, arch) = zed::current_platform();
@@ -95,7 +97,7 @@ impl HelmLanguageServer {
         )?;
         zed::make_file_executable(&binary_path)?;
 
-        remove_outdated_versions("helm-ls-", &version_dir);
+        util::remove_outdated_versions("helm-ls-", &version_dir).ok();
 
         self.cached_binary_path = Some(binary_path.clone());
         Ok(binary_path)
@@ -127,20 +129,6 @@ fn platform_asset_name(os: Os, arch: Architecture) -> String {
     format!("helm_ls_{os_str}_{arch_str}{ext}")
 }
 
-fn remove_outdated_versions(prefix: &str, current_dir: &str) {
-    if let Ok(entries) = fs::read_dir(".") {
-        for entry in entries.flatten() {
-            let name = entry.file_name();
-            let Some(name) = name.to_str() else {
-                continue;
-            };
-            if name.starts_with(prefix) && name != current_dir {
-                let _ = fs::remove_dir_all(name);
-            }
-        }
-    }
-}
-
 fn default_server_arguments() -> Vec<String> {
     vec!["serve".to_string()]
 }
@@ -149,16 +137,6 @@ fn server_arguments(binary_settings: Option<&CommandSettings>) -> Vec<String> {
     binary_settings
         .and_then(|settings| settings.arguments.clone())
         .unwrap_or_else(default_server_arguments)
-}
-
-fn merged_env(
-    mut base_env: Vec<(String, String)>,
-    binary_settings: Option<&CommandSettings>,
-) -> Vec<(String, String)> {
-    if let Some(overrides) = binary_settings.and_then(|settings| settings.env.clone()) {
-        base_env.extend(overrides);
-    }
-    base_env
 }
 
 #[cfg(test)]

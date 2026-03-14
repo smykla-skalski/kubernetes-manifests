@@ -4,6 +4,7 @@ mod helm_language_server;
 mod language_server;
 mod settings;
 mod templates;
+mod util;
 
 #[cfg(feature = "next")]
 extern crate zed_extension_api_next as zed_extension_api;
@@ -21,13 +22,12 @@ use settings::{
 use settings::{kubernetes_workspace_configuration, yaml_server_injection_configuration};
 use templates::{resource_kinds, template_for_kind};
 use zed_extension_api::{
-    self as zed,
+    self as zed, CodeLabel, CodeLabelSpan, ContextServerConfiguration, ContextServerId,
+    KeyValueStore, LanguageServerId, Project, Result, SlashCommand, SlashCommandArgumentCompletion,
+    SlashCommandOutput, SlashCommandOutputSection,
     lsp::{Completion, CompletionKind, Symbol, SymbolKind},
     serde_json::Value as JsonValue,
     settings::LspSettings,
-    CodeLabel, CodeLabelSpan, ContextServerConfiguration, ContextServerId, KeyValueStore,
-    LanguageServerId, Project, Result, SlashCommand, SlashCommandArgumentCompletion,
-    SlashCommandOutput, SlashCommandOutputSection,
 };
 
 const SLASH_COMMAND_NAME: &str = "kubernetes";
@@ -631,7 +631,8 @@ mod tests {
             "zed:prepare-next-dev-source should link the repo assets into the generated dev source tree, including extension.wasm and icons",
         );
         assert!(
-            next_source_task.contains("\"$TOOLS_BIN_DIR/zed-extension\" --source-dir \"$source_dir\""),
+            next_source_task
+                .contains("\"$TOOLS_BIN_DIR/zed-extension\" --source-dir \"$source_dir\""),
             "zed:prepare-next-dev-source should compile the generated source tree through Zed's extension builder",
         );
         assert!(
@@ -643,7 +644,8 @@ mod tests {
             "zed:prepare-next-dev-source should run the extension builder with the repo's absolute rustup home",
         );
         assert!(
-            next_source_task.contains("tar -xzf \"$output_dir/archive.tar.gz\" -C \"$staging_dir\""),
+            next_source_task
+                .contains("tar -xzf \"$output_dir/archive.tar.gz\" -C \"$staging_dir\""),
             "zed:prepare-next-dev-source should unpack the compiled extension archive before copying runtime assets",
         );
         assert!(
@@ -651,7 +653,9 @@ mod tests {
             "zed:prepare-next-dev-source should replace the placeholder extension.wasm with the compiled artifact",
         );
         assert!(
-            next_source_task.contains("install -m 0644 \"$staging_dir/extension.wasm\" \"$source_dir/extension.wasm\""),
+            next_source_task.contains(
+                "install -m 0644 \"$staging_dir/extension.wasm\" \"$source_dir/extension.wasm\""
+            ),
             "zed:prepare-next-dev-source should install the compiled extension.wasm into the generated source tree",
         );
         assert!(
@@ -782,7 +786,9 @@ mod tests {
             "zed:next should open the repo root when no explicit path is provided",
         );
         assert!(
-            next_task.contains("\"$zed_cli\" --nightly --add --user-data-dir \"$user_data_dir\" \"$extra_target\""),
+            next_task.contains(
+                "\"$zed_cli\" --nightly --add --user-data-dir \"$user_data_dir\" \"$extra_target\""
+            ),
             "zed:next should reopen explicit file targets with --add after Nightly finishes launching",
         );
     }

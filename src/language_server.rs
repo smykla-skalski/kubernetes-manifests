@@ -1,10 +1,11 @@
 use std::{env, fs, path::Path};
 
 use zed_extension_api::{
-    self as zed,
+    self as zed, LanguageServerId, Result,
     settings::{CommandSettings, LspSettings},
-    LanguageServerId, Result,
 };
+
+use crate::util;
 
 pub const SERVER_NAME: &str = "kubernetes-language-server";
 pub const BINARY_NAME: &str = "yaml-language-server";
@@ -38,7 +39,7 @@ impl KubernetesLanguageServer {
             .ok()
             .and_then(|settings| settings.binary);
         let args = server_arguments(binary_settings.as_ref());
-        let env = merged_env(worktree.shell_env(), binary_settings.as_ref());
+        let env = util::merged_env(worktree.shell_env(), binary_settings.as_ref());
 
         if let Some(path) = binary_settings
             .as_ref()
@@ -175,16 +176,6 @@ fn server_arguments(binary_settings: Option<&CommandSettings>) -> Vec<String> {
         .unwrap_or_else(default_server_arguments)
 }
 
-fn merged_env(
-    mut base_env: Vec<(String, String)>,
-    binary_settings: Option<&CommandSettings>,
-) -> Vec<(String, String)> {
-    if let Some(overrides) = binary_settings.and_then(|settings| settings.env.clone()) {
-        base_env.extend(overrides);
-    }
-    base_env
-}
-
 const fn binary_command(
     command: String,
     args: Vec<String>,
@@ -255,7 +246,7 @@ mod tests {
         let command = binary_command(
             settings.path.clone().expect("path should exist for test"),
             server_arguments(Some(&settings)),
-            merged_env(Vec::new(), Some(&settings)),
+            util::merged_env(Vec::new(), Some(&settings)),
         );
 
         assert_eq!(command.command, "/opt/bin/yaml-language-server");
@@ -282,26 +273,6 @@ mod tests {
                 "/ext/node_modules/yaml-language-server/bin/yaml-language-server",
                 "--stdio",
                 "--verbose",
-            ],
-        );
-    }
-
-    #[test]
-    fn merged_env_appends_user_env_overrides() {
-        let env = merged_env(
-            vec![("PATH".to_string(), "/usr/bin".to_string())],
-            Some(&command_settings(
-                None,
-                None,
-                Some(vec![("KUBECONFIG", "/tmp/kubeconfig")]),
-            )),
-        );
-
-        assert_eq!(
-            env,
-            vec![
-                ("PATH".to_string(), "/usr/bin".to_string()),
-                ("KUBECONFIG".to_string(), "/tmp/kubeconfig".to_string()),
             ],
         );
     }

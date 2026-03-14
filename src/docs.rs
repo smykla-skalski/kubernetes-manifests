@@ -1,7 +1,6 @@
 use zed_extension_api::{
-    self as zed,
-    http_client::{fetch, HttpMethod, HttpRequest, RedirectPolicy},
-    KeyValueStore,
+    self as zed, KeyValueStore,
+    http_client::{HttpMethod, HttpRequest, RedirectPolicy, fetch},
 };
 
 const DOCS_PROVIDER: &str = "kubernetes";
