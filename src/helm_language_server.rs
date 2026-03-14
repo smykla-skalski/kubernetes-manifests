@@ -69,6 +69,16 @@ impl HelmLanguageServer {
         }
 
         let (os, arch) = zed::current_platform();
+
+        let platform_binary = match os {
+            Os::Windows => format!("{BINARY_NAME}.exe"),
+            _ => BINARY_NAME.to_string(),
+        };
+        if let Some(path) = util::find_installed_binary("helm-ls-", &platform_binary) {
+            self.cached_binary_path = Some(path.clone());
+            return Ok(path);
+        }
+
         let asset_name = platform_asset_name(os, arch);
 
         let release = zed::latest_github_release(

@@ -21,6 +21,23 @@ pub fn remove_outdated_versions(prefix: &str, current_dir: &str) -> Result<(), S
     Ok(())
 }
 
+pub fn find_installed_binary(dir_prefix: &str, binary_name: &str) -> Option<String> {
+    let entries = fs::read_dir(".").ok()?;
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else {
+            continue;
+        };
+        if name.starts_with(dir_prefix) && entry.metadata().is_ok_and(|m| m.is_dir()) {
+            let binary_path = format!("{name}/{binary_name}");
+            if fs::metadata(&binary_path).is_ok_and(|m| m.is_file()) {
+                return Some(binary_path);
+            }
+        }
+    }
+    None
+}
+
 pub fn merged_env(
     mut base_env: Vec<(String, String)>,
     binary_settings: Option<&CommandSettings>,

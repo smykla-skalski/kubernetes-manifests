@@ -76,6 +76,16 @@ impl KubernetesContextServer {
             return Some(path.clone());
         }
 
+        let (os, _) = zed::current_platform();
+        let binary_name = match os {
+            Os::Windows => "mcp-k8s-go.exe",
+            _ => "mcp-k8s-go",
+        };
+        if let Some(path) = util::find_installed_binary("mcp-k8s-go-", binary_name) {
+            self.cached_binary_path = Some(path.clone());
+            return Some(path);
+        }
+
         match download_binary() {
             Ok(path) => {
                 self.cached_binary_path = Some(path.clone());
