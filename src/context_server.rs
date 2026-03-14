@@ -203,6 +203,12 @@ The Kubernetes context server provides cluster state \
 (namespaces, deployments, pods, services) as context for \
 AI chat. It requires an MCP-compatible server binary.
 
+This dialog only configures the Kubernetes MCP context server. \
+Editor and language-server settings such as schemas, validation, \
+completion, or binary overrides live separately under \
+`lsp.kubernetes-language-server.*` in Zed's Settings Editor or \
+your `settings.json`.
+
 The extension auto-downloads mcp-k8s-go from GitHub releases. \
 To use a different binary, set the path in project settings:
 
@@ -271,6 +277,11 @@ mod tests {
     #[test]
     fn installation_instructions_mention_settings_path() {
         assert!(INSTALLATION_INSTRUCTIONS.contains("kubernetes-context-server"));
+    }
+
+    #[test]
+    fn installation_instructions_explain_that_lsp_settings_are_separate() {
+        assert!(INSTALLATION_INSTRUCTIONS.contains("lsp.kubernetes-language-server"));
     }
 
     #[test]

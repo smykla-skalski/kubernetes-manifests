@@ -595,6 +595,10 @@ mod tests {
             "zed:install-dev-extension should rebuild extension.wasm with requested features before linking",
         );
         assert!(
+            install_task.contains("else\n  mise run build:wasm >/dev/null\nfi"),
+            "zed:install-dev-extension should keep the default path on the released API when no features are requested",
+        );
+        assert!(
             install_task.contains("installed_extension_path=\"$installed_dir/kubernetes\""),
             "zed:install-dev-extension should install to the current kubernetes id",
         );
@@ -690,6 +694,10 @@ mod tests {
         assert!(
             install_task.contains("mise run build:wasm --features \"$features\""),
             "zed:install-built-extension should rebuild extension.wasm with requested features",
+        );
+        assert!(
+            install_task.contains("else\n  mise run build:wasm >/dev/null\nfi"),
+            "zed:install-built-extension should keep the default packaged install on the released API when no features are requested",
         );
         assert!(
             install_task.contains("cp -R \"$staging_dir\"/. \"$installed_extension_path\""),

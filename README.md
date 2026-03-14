@@ -8,7 +8,7 @@ Markdown fenced code blocks that use the `kubernetes` info string get Kubernetes
 
 ## Configuration
 
-Use a `settings.json` file to configure these surfaces in every build. When the extension is built with `--features next` and loaded in Zed Nightly or a local Zed Dev build, Zed's Settings Editor also gets the typed schema-backed UI for the extension-owned Kubernetes settings block.
+Use a `settings.json` file to configure these surfaces in every build. When the extension is built with `--features next` and loaded in Zed Nightly or a local Zed Dev build, the Kubernetes LSP settings gain typed schema-backed validation and completion under `lsp.kubernetes-language-server.*`.
 
 The important boundary is that Zed does not surface these `next`-only LSP schema hooks on the extension card. The Extensions page `Configure` button is only for the context server. The `next` feature flag affects the Settings Editor and `settings.json` experience under `lsp.kubernetes-language-server.*` and `lsp.helm-language-server.*`.
 
@@ -19,7 +19,7 @@ The important boundary is that Zed does not surface these `next`-only LSP schema
 
 The Kubernetes language server has two configuration layers under `lsp.kubernetes-language-server.settings`:
 
-- `settings.kubernetes` is extension-owned. It covers the main YAML/Kubernetes editing experience: schema defaults and injection, schema store and CRD store, validation, completion, formatting, editor defaults, key ordering, custom tags, and extra schema associations. In `next` builds on Zed Nightly or Dev, this block is exposed through typed Settings Editor fields.
+- `settings.kubernetes` is extension-owned. It covers the main YAML/Kubernetes editing experience: schema defaults and injection, schema store and CRD store, validation, completion, formatting, editor defaults, key ordering, custom tags, and extra schema associations. In `next` builds on Zed Nightly or Dev, this block gets typed schema-backed validation and completion in the LSP settings surface.
 - `settings.yaml` is raw `yaml-language-server` workspace configuration that applies only to Kubernetes-mode buffers.
 
 Precedence inside Kubernetes mode is `extension defaults < settings.kubernetes < settings.yaml`.

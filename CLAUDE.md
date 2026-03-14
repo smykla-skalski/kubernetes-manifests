@@ -71,6 +71,7 @@ Language definition lives in `languages/kubernetes/config.toml` with Tree-sitter
 - `src/kubernetes.rs` implements `language_server_workspace_configuration_schema` and `language_server_initialization_options_schema` only under the Cargo feature `next`. The Kubernetes schema is typed for the extension-owned block plus permissive raw passthrough objects; Helm exposes a typed `helm-ls` wrapper there too.
 - `helm-language-server` is opt-in at the language level via `languages.Kubernetes.language_servers`. Its runtime config stays raw pass-through under `lsp.helm-language-server.settings["helm-ls"]`.
 - `src/context_server.rs` is the reference pattern for a fully typed configuration surface in this repo because it returns `settings_schema` and `default_settings` for `kubernetes-context-server`.
+- Zed's extension-card `Configure` button only exists because this extension provides `context_servers`, and it opens the MCP/context-server modal for `context_servers.kubernetes-context-server.*`. It does not surface `lsp.kubernetes-language-server.*`; those editor and LSP settings still live in Zed's Settings Editor or `settings.json`.
 
 ## Key terms
 
