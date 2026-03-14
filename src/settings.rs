@@ -49,6 +49,20 @@ fn default_schemas() -> Value {
     })
 }
 
+fn default_kubernetes_workspace_schemas() -> Value {
+    json!({
+        "kubernetes": ["**/*"],
+        "https://json.schemastore.org/kustomization.json": [
+            "kustomization.yaml",
+            "kustomization.yml"
+        ],
+        "https://json.schemastore.org/chart.json": [
+            "Chart.yaml",
+            "Chart.yml"
+        ]
+    })
+}
+
 const fn default_custom_tags() -> Value {
     Value::Array(Vec::new())
 }
@@ -79,7 +93,7 @@ pub fn default_workspace_configuration() -> Value {
                 "bracketSpacing": true,
                 "printWidth": 120
             },
-            "schemas": default_schemas()
+            "schemas": default_kubernetes_workspace_schemas()
         }
     })
 }
@@ -1172,7 +1186,7 @@ mod tests {
         assert_eq!(configuration["yaml"]["format"]["enable"], true);
         assert_eq!(
             configuration["yaml"]["schemas"]["kubernetes"],
-            default_schema_globs(),
+            json!(["**/*"]),
         );
     }
 
@@ -1243,6 +1257,28 @@ mod tests {
                 .unwrap()
                 .contains_key("completion"),
             "additional config should not override yaml server settings",
+        );
+    }
+
+    #[test]
+    fn yaml_injection_uses_narrow_schema_globs() {
+        let configuration =
+            yaml_server_injection_configuration(None, Some("/home/user/project"), None)
+                .expect("yaml injection should be enabled by default");
+        let schemas = configuration["yaml"]["schemas"]
+            .as_object()
+            .expect("yaml.schemas should be an object");
+        let k8s_globs = schemas["kubernetes"]
+            .as_array()
+            .expect("kubernetes globs should be an array");
+
+        assert!(
+            k8s_globs.contains(&json!("/**/*.k8s.yaml")),
+            "injection globs should contain narrow k8s suffix patterns",
+        );
+        assert!(
+            !k8s_globs.contains(&json!("**/*")),
+            "injection globs must not use the wide catch-all pattern",
         );
     }
 
