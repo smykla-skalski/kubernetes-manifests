@@ -51,7 +51,9 @@ impl KubernetesContextServer {
         }
 
         if !env.iter().any(|(k, _)| k == "KUBECONFIG") {
-            if let Some(default) = default_kubeconfig_path() {
+            if let Some(inherited) = env::var("KUBECONFIG").ok().filter(|v| !v.is_empty()) {
+                env.push(("KUBECONFIG".to_string(), inherited));
+            } else if let Some(default) = default_kubeconfig_path() {
                 env.push(("KUBECONFIG".to_string(), default));
             }
         }
