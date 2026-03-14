@@ -32,6 +32,8 @@ requires_argument = true
 description = "Explain a Kubernetes resource type"
 requires_argument = true
 
+# The context server binary path and language server binary paths are
+# user-configurable through settings, so the wildcard is required.
 [[capabilities]]
 kind = "process:exec"
 command = "*"
