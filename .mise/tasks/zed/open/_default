@@ -1,5 +1,5 @@
 #!/bin/sh
-#MISE description="Open Zed Preview in an isolated stateless profile"
+#MISE description="Open Zed Preview in an isolated persistent profile"
 #USAGE flag "--user-data-dir <user_data_dir>" help="Profile directory for the isolated Zed session" default="/tmp/zed-k8s-validation" env="ZED_USER_DATA_DIR"
 #USAGE arg "<path>" default="."
 set -eu
@@ -22,6 +22,6 @@ case "$target" in
 esac
 
 if [ "${KUBERNETES_MANIFESTS_ZED_NEW_WINDOW:-0}" = "1" ]; then
-  exec env ZED_STATELESS=1 "$ZED_CLI" --new --zed "$ZED_APP" --user-data-dir "$user_data_dir" "$@"
+  exec "$ZED_CLI" --new --zed "$ZED_APP" --user-data-dir "$user_data_dir" "$@"
 fi
-exec env ZED_STATELESS=1 "$ZED_CLI" --zed "$ZED_APP" --user-data-dir "$user_data_dir" "$@"
+exec "$ZED_CLI" --zed "$ZED_APP" --user-data-dir "$user_data_dir" "$@"

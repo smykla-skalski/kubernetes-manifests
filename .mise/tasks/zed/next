@@ -1,0 +1,89 @@
+#!/bin/sh
+#MISE description="Build, install, and launch the next-feature extension in Zed Nightly"
+#USAGE flag "--user-data-dir <user_data_dir>" help="Profile directory for the Zed Nightly session; defaults to the real Nightly profile" env="ZED_NEXT_USER_DATA_DIR"
+#USAGE arg "<path>" default="."
+set -eu
+
+default_user_data_dir="${HOME}/Library/Application Support/Zed"
+user_data_dir="${usage_user_data_dir:-${ZED_NEXT_USER_DATA_DIR:-$default_user_data_dir}}"
+target="${usage_path:-.}"
+repo_root="${MISE_PROJECT_ROOT:-${MISE_CONFIG_ROOT:-$PWD}}"
+zed_cli="${ZED_CLI:-zed}"
+nightly_app="/Applications/Zed Nightly.app"
+nightly_process_pattern='/Applications/Zed Nightly.app/Contents/MacOS/zed$'
+
+if [ "$user_data_dir" != "$default_user_data_dir" ]; then
+  echo "zed:next uses Zed's docs-style --nightly launcher, and Zed's macOS background launch path does not honor custom --user-data-dir values." >&2
+  echo "Use the default Nightly profile, or switch to a foreground/dev flow if you need profile isolation." >&2
+  exit 1
+fi
+
+mise run zed:install-nightly >/dev/null
+if ! env -u CARGO_HOME -u RUSTUP_HOME -u TOOLS_DIR -u TOOLS_BIN_DIR "$zed_cli" --nightly --version >/dev/null 2>&1; then
+  if [ -d "$nightly_app" ]; then
+    echo "zed:next found $nightly_app, but this shell session cannot resolve it through Zed's --nightly channel lookup." >&2
+    echo "Zed's macOS CLI implements --nightly by asking AppleScript for 'path to application \"Zed Nightly\"' before spawning that app's cli." >&2
+    echo "Run this task from a normal GUI terminal session and retry." >&2
+  else
+    echo "zed:next could not verify Zed Nightly after installation." >&2
+  fi
+  exit 1
+fi
+
+if pgrep -f "$nightly_process_pattern" >/dev/null 2>&1; then
+  osascript -e 'tell application "Zed Nightly" to quit' >/dev/null 2>&1 || true
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    if ! pgrep -f "$nightly_process_pattern" >/dev/null 2>&1; then
+      break
+    fi
+    sleep 0.5
+  done
+  if pgrep -f "$nightly_process_pattern" >/dev/null 2>&1; then
+    pkill -f "$nightly_process_pattern" >/dev/null 2>&1 || true
+    sleep 1
+  fi
+  if pgrep -f "$nightly_process_pattern" >/dev/null 2>&1; then
+    echo "zed:next could not stop the existing Zed Nightly process. Close it manually and retry." >&2
+    exit 1
+  fi
+fi
+
+mise run zed:prepare-profile --user-data-dir "$user_data_dir" >/dev/null
+mise run zed:install-next-extension --user-data-dir "$user_data_dir" >/dev/null
+
+echo "zed:next uses the real Nightly profile on macOS. If Zed opens this repo in Restricted Mode, trust the worktree in the UI or set nightly.session.trust_all_worktrees in ~/.config/zed/settings.json before expecting Kubernetes or YAML language servers to start." >&2
+
+case "$target" in
+  .)
+    workspace_target="$repo_root"
+    extra_target=
+    ;;
+  /*)
+    workspace_target="$repo_root"
+    extra_target="$target"
+    ;;
+  *)
+    workspace_target="$repo_root"
+    extra_target="$repo_root/$target"
+    ;;
+esac
+
+launch_args=
+if [ "${KUBERNETES_MANIFESTS_ZED_NEW_WINDOW:-0}" = "1" ]; then
+  launch_args="--new"
+fi
+
+env -u CARGO_HOME -u RUSTUP_HOME -u TOOLS_DIR -u TOOLS_BIN_DIR "$zed_cli" --nightly $launch_args --user-data-dir "$user_data_dir" "$workspace_target"
+
+if [ -n "${extra_target:-}" ] && [ "$extra_target" != "$workspace_target" ]; then
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    if pgrep -f "$nightly_process_pattern" >/dev/null 2>&1; then
+      break
+    fi
+    sleep 0.5
+  done
+
+  # Give Nightly time to register its open listener before sending the file-open request.
+  sleep 1
+  exec env -u CARGO_HOME -u RUSTUP_HOME -u TOOLS_DIR -u TOOLS_BIN_DIR "$zed_cli" --nightly --add --user-data-dir "$user_data_dir" "$extra_target"
+fi

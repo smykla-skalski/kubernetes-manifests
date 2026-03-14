@@ -5,14 +5,20 @@ mod language_server;
 mod settings;
 mod templates;
 
+#[cfg(feature = "next")]
+extern crate zed_extension_api_next as zed_extension_api;
+#[cfg(not(feature = "next"))]
+extern crate zed_extension_api_stable as zed_extension_api;
+
 use context_server::KubernetesContextServer;
 use helm_language_server::HelmLanguageServer;
 use language_server::{KubernetesLanguageServer, SERVER_NAME};
+#[cfg(feature = "next")]
 use settings::{
     helm_workspace_configuration_schema, kubernetes_initialization_options_schema,
-    kubernetes_workspace_configuration, kubernetes_workspace_configuration_schema,
-    yaml_server_injection_configuration,
+    kubernetes_workspace_configuration_schema,
 };
+use settings::{kubernetes_workspace_configuration, yaml_server_injection_configuration};
 use templates::{resource_kinds, template_for_kind};
 use zed_extension_api::{
     self as zed,
@@ -156,6 +162,7 @@ impl zed::Extension for KubernetesExtension {
         )))
     }
 
+    #[cfg(feature = "next")]
     fn language_server_initialization_options_schema(
         &mut self,
         language_server_id: &LanguageServerId,
@@ -170,6 +177,7 @@ impl zed::Extension for KubernetesExtension {
         None
     }
 
+    #[cfg(feature = "next")]
     fn language_server_workspace_configuration_schema(
         &mut self,
         language_server_id: &LanguageServerId,
@@ -551,10 +559,41 @@ mod tests {
     }
 
     #[test]
+    fn build_wasm_task_accepts_optional_feature_flags() {
+        let build_task = read_repo_file(".mise/tasks/build/wasm");
+
+        assert!(
+            build_task.contains("#USAGE flag \"--features <features>\""),
+            "build:wasm should expose a features flag",
+        );
+        assert!(
+            build_task.contains("if [ -n \"$features\" ]; then"),
+            "build:wasm should only pass Cargo features when explicitly requested",
+        );
+        assert!(
+            build_task.contains("set -- \"$@\" --features \"$features\""),
+            "build:wasm should forward the requested features to cargo",
+        );
+    }
+
+    #[test]
     fn dev_install_tasks_clean_current_and_legacy_extension_paths() {
         let install_task = read_repo_file(".mise/tasks/zed/install-dev-extension");
+        let next_source_task = read_repo_file(".mise/tasks/zed/prepare-next-dev-source");
         let refresh_task = read_repo_file(".mise/tasks/zed/refresh-runtime");
 
+        assert!(
+            install_task.contains("#USAGE flag \"--source-dir <source_dir>\""),
+            "zed:install-dev-extension should accept an alternate source directory",
+        );
+        assert!(
+            install_task.contains("#USAGE flag \"--features <features>\""),
+            "zed:install-dev-extension should accept optional cargo features",
+        );
+        assert!(
+            install_task.contains("mise run build:wasm --features \"$features\""),
+            "zed:install-dev-extension should rebuild extension.wasm with requested features before linking",
+        );
         assert!(
             install_task.contains("installed_extension_path=\"$installed_dir/kubernetes\""),
             "zed:install-dev-extension should install to the current kubernetes id",
@@ -572,6 +611,54 @@ mod tests {
             "zed:install-dev-extension should remove both current and legacy install roots",
         );
         assert!(
+            install_task.contains("ln -s \"$source_dir\" \"$installed_extension_path\""),
+            "zed:install-dev-extension should link the requested source directory into the profile",
+        );
+        assert!(
+            next_source_task.contains("print \"default = [\\\"next\\\"]\""),
+            "zed:prepare-next-dev-source should make plain cargo builds default to the next feature",
+        );
+        assert!(
+            next_source_task.contains("#MISE depends=[\"tools:install:zed-extension\"]"),
+            "zed:prepare-next-dev-source should provision the zed-extension CLI before compiling the generated source tree",
+        );
+        assert!(
+            next_source_task.contains("for path in Cargo.lock extension.toml extension.wasm rust-toolchain.toml src languages icon_themes icons snippets; do"),
+            "zed:prepare-next-dev-source should link the repo assets into the generated dev source tree, including extension.wasm and icons",
+        );
+        assert!(
+            next_source_task.contains("\"$TOOLS_BIN_DIR/zed-extension\" --source-dir \"$source_dir\""),
+            "zed:prepare-next-dev-source should compile the generated source tree through Zed's extension builder",
+        );
+        assert!(
+            next_source_task.contains("CARGO_HOME=\"$repo_root/tmp/cargo\""),
+            "zed:prepare-next-dev-source should run the extension builder with the repo's absolute cargo home",
+        );
+        assert!(
+            next_source_task.contains("RUSTUP_HOME=\"$repo_root/tmp/rustup\""),
+            "zed:prepare-next-dev-source should run the extension builder with the repo's absolute rustup home",
+        );
+        assert!(
+            next_source_task.contains("tar -xzf \"$output_dir/archive.tar.gz\" -C \"$staging_dir\""),
+            "zed:prepare-next-dev-source should unpack the compiled extension archive before copying runtime assets",
+        );
+        assert!(
+            next_source_task.contains("rm -f \"$source_dir/extension.wasm\""),
+            "zed:prepare-next-dev-source should replace the placeholder extension.wasm with the compiled artifact",
+        );
+        assert!(
+            next_source_task.contains("install -m 0644 \"$staging_dir/extension.wasm\" \"$source_dir/extension.wasm\""),
+            "zed:prepare-next-dev-source should install the compiled extension.wasm into the generated source tree",
+        );
+        assert!(
+            next_source_task.contains("cp -R \"$staging_dir/grammars\" \"$source_dir/grammars\""),
+            "zed:prepare-next-dev-source should stage compiled grammar assets into the generated dev source tree",
+        );
+        assert!(
+            next_source_task.contains("$source_dir/grammars/yaml.wasm"),
+            "zed:prepare-next-dev-source should verify the YAML grammar wasm exists for the Kubernetes language",
+        );
+        assert!(
             refresh_task.contains("work_dir=\"$user_data_dir/extensions/work/kubernetes\""),
             "zed:refresh-runtime should rotate the current runtime cache directory",
         );
@@ -579,6 +666,130 @@ mod tests {
             refresh_task
                 .contains("find \"$legacy_work_root\" -maxdepth 1 -name 'kubernetes-manifests*' -exec rm -rf {} +"),
             "zed:refresh-runtime should keep cleaning legacy runtime caches",
+        );
+    }
+
+    #[test]
+    fn built_install_tasks_support_next_feature_builds() {
+        let install_task = read_repo_file(".mise/tasks/zed/install-built-extension");
+        let install_nightly_task = read_repo_file(".mise/tasks/zed/install-nightly");
+        let install_next_task = read_repo_file(".mise/tasks/zed/install-next-extension");
+
+        assert!(
+            install_task.contains("#USAGE flag \"--features <features>\""),
+            "zed:install-built-extension should expose a features flag",
+        );
+        assert!(
+            install_task.contains("\"$TOOLS_BIN_DIR/zed-extension\" --source-dir ."),
+            "zed:install-built-extension should package extension resources before install",
+        );
+        assert!(
+            install_task.contains("tar -xzf \"$output_dir/archive.tar.gz\" -C \"$staging_dir\""),
+            "zed:install-built-extension should unpack the packaged extension payload before swapping wasm",
+        );
+        assert!(
+            install_task.contains("mise run build:wasm --features \"$features\""),
+            "zed:install-built-extension should rebuild extension.wasm with requested features",
+        );
+        assert!(
+            install_task.contains("cp -R \"$staging_dir\"/. \"$installed_extension_path\""),
+            "zed:install-built-extension should install a regular directory instead of a dev symlink",
+        );
+        assert!(
+            install_next_task.contains(
+                "mise run zed:prepare-next-dev-source --source-dir \"$source_dir\" >/dev/null"
+            ),
+            "zed:install-next-extension should prepare the generated next dev source tree first",
+        );
+        assert!(
+            install_next_task.contains(
+                "exec mise run zed:install-dev-extension --user-data-dir \"$user_data_dir\" --source-dir \"$source_dir\" --features next"
+            ),
+            "zed:install-next-extension should route through the dev install flow with feature next",
+        );
+        assert!(
+            install_nightly_task
+                .contains("curl -fsSL https://zed.dev/install.sh | ZED_CHANNEL=nightly sh"),
+            "zed:install-nightly should use Zed's official installer with the nightly channel",
+        );
+        assert!(
+            install_nightly_task.contains("nightly_app=\"/Applications/Zed Nightly.app\""),
+            "zed:install-nightly should verify the real Nightly app bundle exists on macOS",
+        );
+    }
+
+    #[test]
+    fn zed_next_task_installs_next_extension_and_launches_nightly() {
+        let next_task = read_repo_file(".mise/tasks/zed/next");
+
+        assert!(
+            next_task.contains("mise run zed:install-nightly >/dev/null"),
+            "zed:next should bootstrap Zed Nightly before trying to launch it",
+        );
+        assert!(
+            next_task.contains(
+                "if ! env -u CARGO_HOME -u RUSTUP_HOME -u TOOLS_DIR -u TOOLS_BIN_DIR \"$zed_cli\" --nightly --version >/dev/null 2>&1; then"
+            ),
+            "zed:next should preflight the Nightly channel lookup with a clean toolchain environment",
+        );
+        assert!(
+            next_task.contains("default_user_data_dir=\"${HOME}/Library/Application Support/Zed\""),
+            "zed:next should target the real Nightly profile by default",
+        );
+        assert!(
+            next_task.contains("does not honor custom --user-data-dir values"),
+            "zed:next should explain why custom user-data-dir values are rejected on macOS",
+        );
+        assert!(
+            next_task.contains("tell application \"Zed Nightly\" to quit"),
+            "zed:next should restart a running Nightly instance so the requested profile is honored",
+        );
+        assert!(
+            next_task.contains("pkill -f \"$nightly_process_pattern\""),
+            "zed:next should fall back to terminating Nightly if the graceful quit path does not finish",
+        );
+        assert!(
+            next_task.contains(
+                "mise run zed:prepare-profile --user-data-dir \"$user_data_dir\" >/dev/null"
+            ),
+            "zed:next should prepare the target profile before opening Zed",
+        );
+        assert!(
+            next_task
+                .contains("mise run zed:install-next-extension --user-data-dir \"$user_data_dir\""),
+            "zed:next should install the next-feature extension into the chosen profile first",
+        );
+        assert!(
+            next_task.contains(
+                "env -u CARGO_HOME -u RUSTUP_HOME -u TOOLS_DIR -u TOOLS_BIN_DIR \"$zed_cli\" --nightly $launch_args --user-data-dir \"$user_data_dir\" \"$workspace_target\""
+            ),
+            "zed:next should launch Zed through the Nightly channel without forcing stateless mode",
+        );
+        assert!(
+            next_task.contains("KUBERNETES_MANIFESTS_ZED_NEW_WINDOW"),
+            "zed:next should preserve the repo's new-window toggle",
+        );
+        assert!(
+            next_task.contains("workspace_target=\"$repo_root\""),
+            "zed:next should open the repo root when no explicit path is provided",
+        );
+        assert!(
+            next_task.contains("\"$zed_cli\" --nightly --add --user-data-dir \"$user_data_dir\" \"$extra_target\""),
+            "zed:next should reopen explicit file targets with --add after Nightly finishes launching",
+        );
+    }
+
+    #[test]
+    fn zed_prepare_profile_task_is_non_destructive_for_existing_settings() {
+        let prepare_task = read_repo_file(".mise/tasks/zed/prepare-profile");
+
+        assert!(
+            prepare_task.contains("if [ -f \"$settings_path\" ]; then"),
+            "zed:prepare-profile should not overwrite an existing settings.json file",
+        );
+        assert!(
+            prepare_task.contains("exit 0"),
+            "zed:prepare-profile should leave existing profiles unchanged",
         );
     }
 

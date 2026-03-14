@@ -1,6 +1,6 @@
 [package]
 name = "kubernetes"
-version = "0.4.0"
+version = "0.7.0"
 edition = "2021"
 license = "MIT"
 publish = false
@@ -9,9 +9,15 @@ publish = false
 path = "src/kubernetes.rs"
 crate-type = ["cdylib"]
 
+[features]
+default = []
+next = ["dep:zed_extension_api_next"]
+
 [dependencies]
 serde_json = "1.0"
-zed_extension_api = { git = "https://github.com/zed-industries/zed", rev = "07cfa81f09520c691715c40acff84994a55acaf3", package = "zed_extension_api" }
+url = "2.5"
+zed_extension_api_next = { git = "https://github.com/zed-industries/zed", rev = "07cfa81f09520c691715c40acff84994a55acaf3", package = "zed_extension_api", optional = true }
+zed_extension_api_stable = { version = "0.7.0", package = "zed_extension_api" }
 
 [dev-dependencies]
 regex = "1.12"

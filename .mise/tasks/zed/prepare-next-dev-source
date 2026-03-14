@@ -1,0 +1,68 @@
+#!/bin/sh
+#MISE description="Prepare a dev-extension source tree whose plain cargo build defaults to the next feature"
+#MISE depends=["tools:install:zed-extension"]
+#USAGE flag "--source-dir <source_dir>" help="Output directory for the generated next dev source tree" default="/tmp/zed-k8s-next-dev-source" env="ZED_NEXT_SOURCE_DIR"
+set -eu
+
+repo_root="${MISE_PROJECT_ROOT:-${MISE_CONFIG_ROOT:-$PWD}}"
+source_dir="${usage_source_dir:-${ZED_NEXT_SOURCE_DIR:-/tmp/zed-k8s-next-dev-source}}"
+scratch_dir="$(mktemp -d)"
+output_dir="$(mktemp -d)"
+staging_dir="$(mktemp -d)"
+trap 'rm -rf "$scratch_dir" "$output_dir" "$staging_dir"' EXIT
+
+case "$source_dir" in
+  /*) ;;
+  *) source_dir="$repo_root/$source_dir" ;;
+esac
+
+mkdir -p "$(dirname "$source_dir")"
+rm -rf "$source_dir"
+mkdir -p "$source_dir"
+
+for path in Cargo.lock extension.toml extension.wasm rust-toolchain.toml src languages icon_themes icons snippets; do
+  if [ -e "$repo_root/$path" ]; then
+    ln -s "$repo_root/$path" "$source_dir/$path"
+  fi
+done
+
+awk '
+  $0 == "[features]" {
+    in_features = 1
+    print
+    next
+  }
+  /^\[/ && $0 != "[features]" {
+    in_features = 0
+  }
+  in_features && $0 ~ /^default = / {
+    print "default = [\"next\"]"
+    next
+  }
+  { print }
+' "$repo_root/Cargo.toml" > "$source_dir/Cargo.toml"
+
+if ! grep -q '^default = \["next"\]$' "$source_dir/Cargo.toml"; then
+  echo "zed:prepare-next-dev-source failed to enable default next feature in $source_dir/Cargo.toml" >&2
+  exit 1
+fi
+
+env \
+  CARGO_HOME="$repo_root/tmp/cargo" \
+  RUSTUP_HOME="$repo_root/tmp/rustup" \
+  "$TOOLS_BIN_DIR/zed-extension" --source-dir "$source_dir" --scratch-dir "$scratch_dir" --output-dir "$output_dir" >/dev/null
+tar -xzf "$output_dir/archive.tar.gz" -C "$staging_dir"
+
+rm -f "$source_dir/extension.wasm"
+install -m 0644 "$staging_dir/extension.wasm" "$source_dir/extension.wasm"
+rm -rf "$source_dir/grammars"
+if [ -d "$staging_dir/grammars" ]; then
+  cp -R "$staging_dir/grammars" "$source_dir/grammars"
+fi
+
+if [ ! -f "$source_dir/grammars/yaml.wasm" ]; then
+  echo "zed:prepare-next-dev-source failed to prepare $source_dir/grammars/yaml.wasm" >&2
+  exit 1
+fi
+
+printf 'prepared next dev source: %s\n' "$source_dir"

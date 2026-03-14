@@ -1,0 +1,45 @@
+#!/bin/sh
+#MISE description="Install a prebuilt extension directory into a Zed profile, with optional Cargo features"
+#MISE depends=["tools:install:zed-extension"]
+#USAGE flag "--user-data-dir <user_data_dir>" help="Profile directory for the Zed session" default="/tmp/zed-k8s-validation" env="ZED_USER_DATA_DIR"
+#USAGE flag "--features <features>" help="Optional Cargo features to bake into extension.wasm before install" default="" env="K8S_EXTENSION_FEATURES"
+set -eu
+
+repo_root="${MISE_PROJECT_ROOT:-${MISE_CONFIG_ROOT:-$PWD}}"
+user_data_dir="${usage_user_data_dir:-$ZED_USER_DATA_DIR}"
+features="${usage_features:-${K8S_EXTENSION_FEATURES:-}}"
+extensions_dir="$user_data_dir/extensions"
+installed_dir="$extensions_dir/installed"
+installed_extension_path="$installed_dir/kubernetes"
+legacy_installed_extension_path="$installed_dir/kubernetes-manifests"
+index_path="$extensions_dir/index.json"
+scratch_dir="$(mktemp -d)"
+output_dir="$(mktemp -d)"
+staging_dir="$(mktemp -d)"
+trap 'rm -rf "$scratch_dir" "$output_dir" "$staging_dir"' EXIT
+
+cd "$repo_root"
+mise run zed:prepare-profile --user-data-dir "$user_data_dir" >/dev/null
+"$TOOLS_BIN_DIR/zed-extension" --source-dir . --scratch-dir "$scratch_dir" --output-dir "$output_dir" >/dev/null
+
+if [ -n "$features" ]; then
+  mise run build:wasm --features "$features" >/dev/null
+else
+  mise run build:wasm >/dev/null
+fi
+
+tar -xzf "$output_dir/archive.tar.gz" -C "$staging_dir"
+install -m 0644 extension.wasm "$staging_dir/extension.wasm"
+
+mkdir -p "$installed_dir"
+rm -rf "$installed_extension_path" "$legacy_installed_extension_path"
+mkdir -p "$installed_extension_path"
+cp -R "$staging_dir"/. "$installed_extension_path"
+rm -f "$index_path"
+mise run zed:refresh-runtime --user-data-dir "$user_data_dir" >/dev/null
+
+if [ -n "$features" ]; then
+  printf 'installed built extension: %s (features: %s)\n' "$installed_extension_path" "$features"
+else
+  printf 'installed built extension: %s\n' "$installed_extension_path"
+fi

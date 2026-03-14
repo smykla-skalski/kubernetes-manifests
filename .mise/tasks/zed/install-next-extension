@@ -1,0 +1,17 @@
+#!/bin/sh
+#MISE description="Install the next-feature extension as a real dev extension in a Zed profile"
+#USAGE flag "--user-data-dir <user_data_dir>" help="Profile directory for the Zed session" default="/tmp/zed-k8s-validation" env="ZED_USER_DATA_DIR"
+#USAGE flag "--source-dir <source_dir>" help="Output directory for the generated next dev source tree" default="/tmp/zed-k8s-next-dev-source" env="ZED_NEXT_SOURCE_DIR"
+set -eu
+
+repo_root="${MISE_PROJECT_ROOT:-${MISE_CONFIG_ROOT:-$PWD}}"
+user_data_dir="${usage_user_data_dir:-$ZED_USER_DATA_DIR}"
+source_dir="${usage_source_dir:-${ZED_NEXT_SOURCE_DIR:-/tmp/zed-k8s-next-dev-source}}"
+
+case "$source_dir" in
+  /*) ;;
+  *) source_dir="$repo_root/$source_dir" ;;
+esac
+
+mise run zed:prepare-next-dev-source --source-dir "$source_dir" >/dev/null
+exec mise run zed:install-dev-extension --user-data-dir "$user_data_dir" --source-dir "$source_dir" --features next

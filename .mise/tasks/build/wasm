@@ -3,10 +3,17 @@
 #MISE depends=["rust:bootstrap"]
 #MISE sources=["Cargo.toml", "Cargo.lock", "src/**/*.rs"]
 #MISE outputs=["extension.wasm"]
+#USAGE flag "--features <features>" help="Optional Cargo features to enable while building extension.wasm" default="" env="K8S_EXTENSION_FEATURES"
 set -eu
 
 cd "${MISE_CONFIG_ROOT:-$PWD}"
-RUSTC_WRAPPER="" cargo build --target wasm32-wasip2 --target-dir target
+features="${usage_features:-${K8S_EXTENSION_FEATURES:-}}"
+
+set -- cargo build --target wasm32-wasip2 --target-dir target
+if [ -n "$features" ]; then
+  set -- "$@" --features "$features"
+fi
+RUSTC_WRAPPER="" "$@"
 
 crate_name="$(
   awk -F'"' '

@@ -1,0 +1,28 @@
+#!/bin/sh
+#MISE description="Install Zed Nightly on macOS via the official installer when it is missing"
+#USAGE flag "--force" help="Reinstall Zed Nightly even if it is already available" default="false"
+set -eu
+
+force="${usage_force:-false}"
+nightly_app="/Applications/Zed Nightly.app"
+
+if [ "$(uname -s)" != "Darwin" ]; then
+  echo "zed:install-nightly is only supported on macOS" >&2
+  exit 1
+fi
+
+if [ "$force" != "true" ] && [ -d "$nightly_app" ]; then
+  exit 0
+fi
+
+if ! command -v curl >/dev/null 2>&1; then
+  echo "zed:install-nightly requires curl" >&2
+  exit 1
+fi
+
+curl -fsSL https://zed.dev/install.sh | ZED_CHANNEL=nightly sh
+
+if [ ! -d "$nightly_app" ]; then
+  echo "zed:install-nightly did not create $nightly_app" >&2
+  exit 1
+fi

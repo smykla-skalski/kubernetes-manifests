@@ -335,13 +335,15 @@ checksum = "92ecc6618181def0457392ccd0ee51198e065e016d1d527a7ac1b6dc7c1f09d2"
 
 [[package]]
 name = "kubernetes"
-version = "0.4.0"
+version = "0.7.0"
 dependencies = [
  "regex",
  "serde_json",
  "serde_yml",
  "toml",
- "zed_extension_api",
+ "url",
+ "zed_extension_api 0.7.0",
+ "zed_extension_api 0.8.0",
 ]
 
 [[package]]
@@ -875,6 +877,17 @@ dependencies = [
  "quote",
  "syn",
  "synstructure",
+]
+
+[[package]]
+name = "zed_extension_api"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0729d50b4ca0a7e28e590bbe32e3ca0194d97ef654961451a424c661a366fca0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "wit-bindgen",
 ]
 
 [[package]]

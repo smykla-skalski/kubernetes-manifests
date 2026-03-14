@@ -1,6 +1,7 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
+use url::Url;
 
 #[derive(Debug, Clone)]
 struct CuratedKubernetesSettings {
@@ -165,6 +166,7 @@ pub fn yaml_server_injection_configuration(
     }))
 }
 
+#[cfg(feature = "next")]
 pub fn kubernetes_workspace_configuration_schema() -> Value {
     json!({
         "type": "object",
@@ -179,6 +181,7 @@ pub fn kubernetes_workspace_configuration_schema() -> Value {
     })
 }
 
+#[cfg(feature = "next")]
 pub fn kubernetes_initialization_options_schema() -> Value {
     json!({
         "type": "object",
@@ -188,6 +191,7 @@ pub fn kubernetes_initialization_options_schema() -> Value {
     })
 }
 
+#[cfg(feature = "next")]
 pub fn helm_workspace_configuration_schema() -> Value {
     json!({
         "type": "object",
@@ -195,11 +199,12 @@ pub fn helm_workspace_configuration_schema() -> Value {
         "default": {},
         "additionalProperties": true,
         "properties": {
-            "helm-ls": raw_passthrough_schema("Raw helm-language-server settings. Configure helm-ls exactly as upstream documents it.")
+            "helm-ls": helm_ls_settings_schema()
         }
     })
 }
 
+#[cfg(feature = "next")]
 fn raw_passthrough_schema(description: &str) -> Value {
     json!({
         "type": "object",
@@ -209,6 +214,150 @@ fn raw_passthrough_schema(description: &str) -> Value {
     })
 }
 
+#[cfg(feature = "next")]
+fn helm_ls_settings_schema() -> Value {
+    object_schema(
+        "Helm language server settings. The typed fields cover the official helm-ls configuration surface, while yamlls.config remains a raw yaml-language-server passthrough object.",
+        Some(helm_ls_settings_defaults()),
+        true,
+        &helm_ls_settings_properties(),
+    )
+}
+
+#[cfg(feature = "next")]
+fn helm_ls_settings_defaults() -> Value {
+    json!({
+        "logLevel": "info",
+        "valuesFiles": {
+            "mainValuesFile": "values.yaml",
+            "lintOverlayValuesFile": "values.lint.yaml",
+            "additionalValuesFilesGlobPattern": "values*.yaml"
+        },
+        "helmLint": {
+            "enabled": true,
+            "ignoredMessages": []
+        },
+        "yamlls": {
+            "enabled": true,
+            "enabledForFilesGlob": "*.{yaml,yml}",
+            "diagnosticsLimit": 50,
+            "showDiagnosticsDirectly": false,
+            "path": "yaml-language-server",
+            "initTimeoutSeconds": 3
+        }
+    })
+}
+
+#[cfg(feature = "next")]
+fn helm_ls_settings_properties() -> Value {
+    json!({
+        "logLevel": string_schema(
+            "Log verbosity for helm-ls.",
+            Some("info"),
+        ),
+        "valuesFiles": helm_ls_values_files_schema(),
+        "helmLint": helm_ls_helm_lint_schema(),
+        "yamlls": helm_ls_yamlls_schema()
+    })
+}
+
+#[cfg(feature = "next")]
+fn helm_ls_values_files_schema() -> Value {
+    object_schema(
+        "Values file discovery settings.",
+        Some(json!({
+            "mainValuesFile": "values.yaml",
+            "lintOverlayValuesFile": "values.lint.yaml",
+            "additionalValuesFilesGlobPattern": "values*.yaml"
+        })),
+        true,
+        &json!({
+            "mainValuesFile": string_schema(
+                "Main values file used as the base for Helm values support.",
+                Some("values.yaml"),
+            ),
+            "lintOverlayValuesFile": string_schema(
+                "Overlay values file merged into the main values file for helm lint.",
+                Some("values.lint.yaml"),
+            ),
+            "additionalValuesFilesGlobPattern": string_schema(
+                "Glob pattern for additional values files exposed to completion and hover.",
+                Some("values*.yaml"),
+            )
+        }),
+    )
+}
+
+#[cfg(feature = "next")]
+fn helm_ls_helm_lint_schema() -> Value {
+    object_schema(
+        "Helm lint diagnostics settings.",
+        Some(json!({
+            "enabled": true,
+            "ignoredMessages": []
+        })),
+        true,
+        &json!({
+            "enabled": boolean_schema(
+                "Enable diagnostics gathered from helm lint.",
+                Some(true),
+            ),
+            "ignoredMessages": string_array_schema(
+                "Helm lint messages to ignore.",
+                Some(json!([])),
+            )
+        }),
+    )
+}
+
+#[cfg(feature = "next")]
+fn helm_ls_yamlls_schema() -> Value {
+    object_schema(
+        "yaml-language-server integration inside helm-ls.",
+        Some(json!({
+            "enabled": true,
+            "enabledForFilesGlob": "*.{yaml,yml}",
+            "diagnosticsLimit": 50,
+            "showDiagnosticsDirectly": false,
+            "path": "yaml-language-server",
+            "initTimeoutSeconds": 3
+        })),
+        true,
+        &json!({
+            "enabled": boolean_schema(
+                "Enable yaml-language-server integration inside helm-ls.",
+                Some(true),
+            ),
+            "enabledForFilesGlob": string_schema(
+                "Glob that controls which files get yaml-language-server integration.",
+                Some("*.{yaml,yml}"),
+            ),
+            "diagnosticsLimit": integer_schema(
+                "Maximum number of yaml-language-server diagnostics shown per file. Set to 0 to disable diagnostics while keeping other yamlls features.",
+                Some(50),
+                Some(0),
+            ),
+            "showDiagnosticsDirectly": boolean_schema(
+                "Show yaml-language-server diagnostics while typing.",
+                Some(false),
+            ),
+            "path": string_or_string_array_schema(
+                "Path to yaml-language-server. Can be a command string or an argv array.",
+                Some(json!("yaml-language-server")),
+            ),
+            "initTimeoutSeconds": integer_schema(
+                "Initialization timeout for the embedded yaml-language-server.",
+                Some(3),
+                Some(1),
+            ),
+            "config": raw_passthrough_schema(
+                "Raw yaml-language-server configuration passed through by helm-ls.",
+            )
+        }),
+    )
+}
+
+#[cfg(feature = "next")]
 fn kubernetes_curated_settings_schema() -> Value {
     object_schema(
         "Extension-owned settings for the Kubernetes editing experience. These cover the most important yaml-language-server knobs with typed Settings Editor support, while raw settings.yaml remains the escape hatch for niche upstream options.",
@@ -218,6 +367,7 @@ fn kubernetes_curated_settings_schema() -> Value {
     )
 }
 
+#[cfg(feature = "next")]
 fn kubernetes_curated_settings_defaults() -> Value {
     json!({
         "includeDefaultSchemas": true,
@@ -248,6 +398,7 @@ fn kubernetes_curated_settings_defaults() -> Value {
     })
 }
 
+#[cfg(feature = "next")]
 fn kubernetes_curated_settings_properties() -> Value {
     json!({
         "includeDefaultSchemas": boolean_schema(
@@ -302,6 +453,7 @@ fn kubernetes_curated_settings_properties() -> Value {
     })
 }
 
+#[cfg(feature = "next")]
 fn curated_schema_store_schema() -> Value {
     object_schema(
         "Schema Store settings for Kubernetes-mode buffers.",
@@ -322,6 +474,7 @@ fn curated_schema_store_schema() -> Value {
     )
 }
 
+#[cfg(feature = "next")]
 fn curated_kubernetes_crd_store_schema() -> Value {
     object_schema(
         "Kubernetes CRD store integration for fetching remote CRD schemas.",
@@ -340,6 +493,7 @@ fn curated_kubernetes_crd_store_schema() -> Value {
     )
 }
 
+#[cfg(feature = "next")]
 fn curated_suggest_schema() -> Value {
     object_schema(
         "Completion suggestion behavior.",
@@ -354,6 +508,7 @@ fn curated_suggest_schema() -> Value {
     )
 }
 
+#[cfg(feature = "next")]
 fn curated_style_schema() -> Value {
     object_schema(
         "Formatting style controls for flow collections.",
@@ -377,6 +532,7 @@ fn curated_style_schema() -> Value {
     )
 }
 
+#[cfg(feature = "next")]
 fn curated_format_schema() -> Value {
     object_schema(
         "Formatting controls for Kubernetes-mode buffers.",
@@ -413,6 +569,7 @@ fn curated_format_schema() -> Value {
     )
 }
 
+#[cfg(feature = "next")]
 fn curated_editor_schema() -> Value {
     object_schema(
         "Editor defaults applied to Kubernetes-mode YAML buffers.",
@@ -434,6 +591,7 @@ fn curated_editor_schema() -> Value {
     )
 }
 
+#[cfg(feature = "next")]
 fn boolean_schema(description: &str, default: Option<bool>) -> Value {
     let mut schema = json!({
         "type": "boolean",
@@ -445,6 +603,7 @@ fn boolean_schema(description: &str, default: Option<bool>) -> Value {
     schema
 }
 
+#[cfg(feature = "next")]
 fn integer_schema(description: &str, default: Option<i64>, minimum: Option<i64>) -> Value {
     let mut schema = json!({
         "type": "integer",
@@ -459,6 +618,7 @@ fn integer_schema(description: &str, default: Option<i64>, minimum: Option<i64>)
     schema
 }
 
+#[cfg(feature = "next")]
 fn string_schema(description: &str, default: Option<&str>) -> Value {
     let mut schema = json!({
         "type": "string",
@@ -470,6 +630,7 @@ fn string_schema(description: &str, default: Option<&str>) -> Value {
     schema
 }
 
+#[cfg(feature = "next")]
 fn string_enum_schema(description: &str, default: Option<&str>, values: &[&str]) -> Value {
     let mut schema = string_schema(description, default);
     schema["enum"] = Value::Array(
@@ -481,6 +642,7 @@ fn string_enum_schema(description: &str, default: Option<&str>, values: &[&str])
     schema
 }
 
+#[cfg(feature = "next")]
 fn string_array_schema(description: &str, default: Option<Value>) -> Value {
     let mut schema = json!({
         "type": "array",
@@ -495,6 +657,29 @@ fn string_array_schema(description: &str, default: Option<Value>) -> Value {
     schema
 }
 
+#[cfg(feature = "next")]
+fn string_or_string_array_schema(description: &str, default: Option<Value>) -> Value {
+    let mut schema = json!({
+        "description": description,
+        "anyOf": [
+            {
+                "type": "string"
+            },
+            {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                }
+            }
+        ]
+    });
+    if let Some(default) = default {
+        schema["default"] = default;
+    }
+    schema
+}
+
+#[cfg(feature = "next")]
 fn object_schema(
     description: &str,
     default: Option<Value>,
@@ -513,6 +698,7 @@ fn object_schema(
     schema
 }
 
+#[cfg(feature = "next")]
 fn schema_associations_schema() -> Value {
     json!({
         "type": "object",
@@ -926,20 +1112,26 @@ fn resolve_schema_path(
     home_dir: Option<&str>,
 ) -> String {
     if let Some((home_dir, rest)) = home_dir.zip(schema_path.strip_prefix("~/")) {
-        return PathBuf::from(home_dir)
-            .join(rest)
-            .to_string_lossy()
-            .into_owned();
+        return local_schema_path_to_uri(PathBuf::from(home_dir).join(rest), schema_path);
     }
 
     if let Some(worktree_root) = worktree_root.filter(|_| schema_path.starts_with('.')) {
-        return PathBuf::from(worktree_root)
-            .join(schema_path.strip_prefix("./").unwrap_or(schema_path))
-            .to_string_lossy()
-            .into_owned();
+        return local_schema_path_to_uri(
+            PathBuf::from(worktree_root)
+                .join(schema_path.strip_prefix("./").unwrap_or(schema_path)),
+            schema_path,
+        );
+    }
+
+    if Path::new(schema_path).is_absolute() {
+        return local_schema_path_to_uri(PathBuf::from(schema_path), schema_path);
     }
 
     schema_path.to_string()
+}
+
+fn local_schema_path_to_uri(path: PathBuf, fallback: &str) -> String {
+    Url::from_file_path(path).map_or_else(|()| fallback.to_string(), |url| url.to_string())
 }
 
 fn default_schema_map() -> Map<String, Value> {
@@ -972,6 +1164,12 @@ fn merge_json_object_into(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn file_url(path: &str) -> String {
+        Url::from_file_path(path)
+            .expect("test path should convert to file URL")
+            .to_string()
+    }
 
     #[test]
     fn default_config_contains_kubernetes_schema_and_formatting() {
@@ -1133,7 +1331,7 @@ mod tests {
             .expect("yaml.schemas should be an object");
 
         assert!(
-            schemas.contains_key("/home/user/project/schemas/custom.json"),
+            schemas.contains_key(&file_url("/home/user/project/schemas/custom.json")),
             "curated relative schema paths should resolve against worktree root",
         );
         assert!(
@@ -1304,8 +1502,9 @@ mod tests {
             None,
         );
 
+        let custom_schema_url = file_url("/home/user/project/schemas/custom.json");
         assert_eq!(
-            configuration["yaml"]["schemas"]["/home/user/project/schemas/custom.json"],
+            configuration["yaml"]["schemas"][custom_schema_url.as_str()],
             json!(["overrides/*.yaml"]),
         );
         assert_eq!(configuration["yaml"]["validate"], true);
@@ -1331,7 +1530,7 @@ mod tests {
             .as_object()
             .expect("yaml.schemas should be an object");
         assert!(
-            schemas.contains_key("/home/user/project/schemas/custom.json"),
+            schemas.contains_key(&file_url("/home/user/project/schemas/custom.json")),
             "relative path should resolve against worktree root",
         );
         assert!(
@@ -1362,7 +1561,7 @@ mod tests {
             .as_object()
             .expect("yaml.schemas should be an object");
         assert!(
-            schemas.contains_key("/home/user/project/../shared/schema.json"),
+            schemas.contains_key(&file_url("/home/user/project/../shared/schema.json")),
             "parent-relative path should resolve against worktree root",
         );
         assert!(
@@ -1390,7 +1589,7 @@ mod tests {
             .as_object()
             .expect("yaml.schemas should be an object");
         assert!(schemas.contains_key("kubernetes"));
-        assert!(schemas.contains_key("/absolute/path/schema.json"));
+        assert!(schemas.contains_key(&file_url("/absolute/path/schema.json")));
     }
 
     #[test]
@@ -1416,11 +1615,11 @@ mod tests {
             .as_object()
             .expect("yaml.schemas should be an object");
         assert!(
-            schemas.contains_key("/home/user/schemas/custom.json"),
+            schemas.contains_key(&file_url("/home/user/schemas/custom.json")),
             "~/path should resolve to $HOME/path for curated schema associations",
         );
         assert!(
-            schemas.contains_key("/home/user/schemas/raw.json"),
+            schemas.contains_key(&file_url("/home/user/schemas/raw.json")),
             "~/path should resolve to $HOME/path for raw yaml.schemas",
         );
     }
@@ -1504,11 +1703,11 @@ mod tests {
             "raw yaml-language-server settings should not leak into built-in YAML injection",
         );
         assert!(
-            schemas.contains_key("/home/user/project/schemas/custom.json"),
+            schemas.contains_key(&file_url("/home/user/project/schemas/custom.json")),
             "curated schema associations should be mirrored into built-in YAML",
         );
         assert!(
-            !schemas.contains_key("/home/user/project/schemas/raw.json"),
+            !schemas.contains_key(&file_url("/home/user/project/schemas/raw.json")),
             "raw yaml.schemas should not be mirrored into built-in YAML",
         );
     }
@@ -1555,11 +1754,12 @@ mod tests {
             "default schema associations should be removed from YAML injection",
         );
         assert!(
-            schemas.contains_key("/home/user/project/schemas/custom.json"),
+            schemas.contains_key(&file_url("/home/user/project/schemas/custom.json")),
             "curated schema associations should still be mirrored",
         );
     }
 
+    #[cfg(feature = "next")]
     #[test]
     fn workspace_schema_exposes_curated_kubernetes_defaults() {
         let schema = kubernetes_workspace_configuration_schema();
@@ -1599,8 +1799,9 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "next")]
     #[test]
-    fn initialization_and_helm_schemas_are_permissive_objects() {
+    fn initialization_and_helm_schemas_are_typed_objects() {
         let initialization_schema = kubernetes_initialization_options_schema();
         let helm_schema = helm_workspace_configuration_schema();
 
@@ -1609,8 +1810,24 @@ mod tests {
         assert_eq!(helm_schema["type"], "object");
         assert_eq!(helm_schema["properties"]["helm-ls"]["type"], "object");
         assert_eq!(
-            helm_schema["properties"]["helm-ls"]["additionalProperties"],
+            helm_schema["properties"]["helm-ls"]["properties"]["yamlls"]["properties"]["enabled"]
+                ["default"],
             true,
+        );
+        assert_eq!(
+            helm_schema["properties"]["helm-ls"]["properties"]["valuesFiles"]["properties"]
+                ["mainValuesFile"]["default"],
+            "values.yaml",
+        );
+        assert_eq!(
+            helm_schema["properties"]["helm-ls"]["properties"]["yamlls"]["properties"]["path"]
+                ["default"],
+            "yaml-language-server",
+        );
+        assert_eq!(
+            helm_schema["properties"]["helm-ls"]["properties"]["yamlls"]["properties"]["config"]
+                ["type"],
+            "object",
         );
     }
 }

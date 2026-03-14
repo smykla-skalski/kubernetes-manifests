@@ -11,6 +11,12 @@ pub const BINARY_NAME: &str = "yaml-language-server";
 const PACKAGE_NAME: &str = "yaml-language-server";
 const PACKAGE_VERSION: &str = "1.21.0";
 const SERVER_PATH: &str = "node_modules/yaml-language-server/bin/yaml-language-server";
+const SETTINGS_HANDLER_PATHS: &[&str] = &[
+    "node_modules/yaml-language-server/out/server/src/languageserver/handlers/settingsHandlers.js",
+    "node_modules/yaml-language-server/lib/esm/languageserver/handlers/settingsHandlers.js",
+];
+const INVALID_YAML_EDITOR_SCOPE_URI: &str = "{ section: '[yaml]', scopeUri: 'null' },";
+const PATCHED_YAML_EDITOR_SCOPE_URI: &str = "{ section: '[yaml]' },";
 
 pub struct KubernetesLanguageServer {
     cached_server_script_path: Option<String>,
@@ -63,6 +69,7 @@ impl KubernetesLanguageServer {
             .as_ref()
             .filter(|path| file_exists(path))
         {
+            patch_managed_yaml_language_server()?;
             return Ok(path.clone());
         }
 
@@ -102,6 +109,8 @@ impl KubernetesLanguageServer {
             }
         }
 
+        patch_managed_yaml_language_server()?;
+
         self.cached_server_script_path = Some(absolute_server_path.clone());
         Ok(absolute_server_path)
     }
@@ -118,6 +127,42 @@ fn extension_file_path(relative_path: &str) -> Result<String> {
 
 fn file_exists(path: impl AsRef<Path>) -> bool {
     fs::metadata(path).is_ok_and(|metadata| metadata.is_file())
+}
+
+fn patch_managed_yaml_language_server() -> Result<()> {
+    for relative_path in SETTINGS_HANDLER_PATHS {
+        let absolute_path = extension_file_path(relative_path)?;
+        if !file_exists(&absolute_path) {
+            continue;
+        }
+
+        patch_yaml_language_server_settings_handler(&absolute_path).map_err(|error| {
+            format!(
+                "failed to patch managed yaml-language-server settings handler '{relative_path}': {error}"
+            )
+        })?;
+    }
+
+    Ok(())
+}
+
+fn patch_yaml_language_server_settings_handler(path: &str) -> Result<()> {
+    let contents =
+        fs::read_to_string(path).map_err(|error| format!("failed to read '{path}': {error}"))?;
+    let Some(patched_contents) = patched_yaml_editor_scope_uri(&contents) else {
+        return Ok(());
+    };
+
+    fs::write(path, patched_contents).map_err(|error| format!("failed to write '{path}': {error}"))
+}
+
+fn patched_yaml_editor_scope_uri(contents: &str) -> Option<String> {
+    let patched = contents.replace(INVALID_YAML_EDITOR_SCOPE_URI, PATCHED_YAML_EDITOR_SCOPE_URI);
+    if patched == contents {
+        None
+    } else {
+        Some(patched)
+    }
 }
 
 fn default_server_arguments() -> Vec<String> {
@@ -258,6 +303,32 @@ mod tests {
                 ("PATH".to_string(), "/usr/bin".to_string()),
                 ("KUBECONFIG".to_string(), "/tmp/kubeconfig".to_string()),
             ],
+        );
+    }
+
+    #[test]
+    fn patch_removes_invalid_yaml_editor_scope_uri() {
+        let contents = "before\n            { section: '[yaml]', scopeUri: 'null' },\nafter\n";
+        let patched = patched_yaml_editor_scope_uri(contents)
+            .expect("patch should update the invalid scopeUri entry");
+
+        assert!(
+            patched.contains("{ section: '[yaml]' },"),
+            "patch should keep the [yaml] config request while removing the invalid scopeUri",
+        );
+        assert!(
+            !patched.contains("scopeUri: 'null'"),
+            "patch should remove the invalid literal null scopeUri",
+        );
+    }
+
+    #[test]
+    fn patch_is_noop_when_invalid_scope_uri_is_already_absent() {
+        let contents = "before\n            { section: '[yaml]' },\nafter\n";
+
+        assert!(
+            patched_yaml_editor_scope_uri(contents).is_none(),
+            "patch should not rewrite files that already avoid the invalid scopeUri",
         );
     }
 }

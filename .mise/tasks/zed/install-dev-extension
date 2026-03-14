@@ -1,23 +1,46 @@
 #!/bin/sh
-#MISE description="Install this repository as a dev extension in the isolated Zed profile"
-#MISE depends=["build:wasm"]
+#MISE description="Install this repository or a prepared source tree as a dev extension in a Zed profile"
 #USAGE flag "--user-data-dir <user_data_dir>" help="Profile directory for the isolated Zed session" default="/tmp/zed-k8s-validation" env="ZED_USER_DATA_DIR"
+#USAGE flag "--source-dir <source_dir>" help="Extension directory to symlink into the Zed profile" default="" env="K8S_EXTENSION_SOURCE_DIR"
+#USAGE flag "--features <features>" help="Optional Cargo features to enable while rebuilding extension.wasm before install" default="" env="K8S_EXTENSION_FEATURES"
 set -eu
 
 repo_root="${MISE_PROJECT_ROOT:-${MISE_CONFIG_ROOT:-$PWD}}"
 user_data_dir="${usage_user_data_dir:-$ZED_USER_DATA_DIR}"
+source_dir="${usage_source_dir:-${K8S_EXTENSION_SOURCE_DIR:-$repo_root}}"
+features="${usage_features:-${K8S_EXTENSION_FEATURES:-}}"
 extensions_dir="$user_data_dir/extensions"
 installed_dir="$extensions_dir/installed"
 installed_extension_path="$installed_dir/kubernetes"
 legacy_installed_extension_path="$installed_dir/kubernetes-manifests"
 index_path="$extensions_dir/index.json"
 
+case "$source_dir" in
+  /*) ;;
+  *) source_dir="$repo_root/$source_dir" ;;
+esac
+
 cd "$repo_root"
+if [ -n "$features" ]; then
+  mise run build:wasm --features "$features" >/dev/null
+else
+  mise run build:wasm >/dev/null
+fi
+
+if [ ! -f "$source_dir/extension.toml" ]; then
+  echo "zed:install-dev-extension expected extension.toml in $source_dir" >&2
+  exit 1
+fi
+if [ ! -f "$source_dir/extension.wasm" ]; then
+  echo "zed:install-dev-extension expected extension.wasm in $source_dir" >&2
+  exit 1
+fi
+
 mise run zed:prepare-profile --user-data-dir "$user_data_dir" >/dev/null
 mkdir -p "$installed_dir"
 rm -rf "$installed_extension_path" "$legacy_installed_extension_path"
-ln -s "$repo_root" "$installed_extension_path"
+ln -s "$source_dir" "$installed_extension_path"
 rm -f "$index_path"
 mise run zed:refresh-runtime --user-data-dir "$user_data_dir" >/dev/null
 
-printf 'installed dev extension symlink: %s -> %s\n' "$installed_extension_path" "$repo_root"
+printf 'installed dev extension symlink: %s -> %s\n' "$installed_extension_path" "$source_dir"
