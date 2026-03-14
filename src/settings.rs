@@ -49,30 +49,8 @@ fn default_schemas() -> Value {
     })
 }
 
-fn default_custom_tags() -> Value {
-    json!([
-        "!Ref",
-        "!Sub",
-        "!Sub sequence",
-        "!GetAtt",
-        "!GetAtt sequence",
-        "!Fn::Sub",
-        "!Fn::Sub sequence",
-        "!FindInMap sequence",
-        "!Join sequence",
-        "!Select sequence",
-        "!Split sequence",
-        "!If sequence",
-        "!Not sequence",
-        "!Equals sequence",
-        "!And sequence",
-        "!Or sequence",
-        "!Condition",
-        "!Base64",
-        "!Cidr sequence",
-        "!ImportValue",
-        "!Transform mapping",
-    ])
+const fn default_custom_tags() -> Value {
+    Value::Array(Vec::new())
 }
 
 pub fn default_workspace_configuration() -> Value {
@@ -444,6 +422,10 @@ fn kubernetes_curated_settings_properties() -> Value {
             "Enable key ordering validation.",
             None,
         ),
+        "enableStrictSchemaValidation": boolean_schema(
+            "Promote schema validation warnings to errors when a property does not match the associated schema.",
+            None,
+        ),
         "schemaStore": curated_schema_store_schema(),
         "kubernetesCRDStore": curated_kubernetes_crd_store_schema(),
         "suggest": curated_suggest_schema(),
@@ -785,6 +767,7 @@ fn parse_curated_root_scalars(settings: &Map<String, Value>, workspace_overrides
         "completion",
         "disableDefaultProperties",
         "keyOrdering",
+        "enableStrictSchemaValidation",
     ] {
         parse_curated_object_bool(
             workspace_overrides,
@@ -1214,17 +1197,13 @@ mod tests {
     }
 
     #[test]
-    fn default_config_includes_custom_tags() {
+    fn default_config_has_empty_custom_tags() {
         let configuration = default_workspace_configuration();
         let tags = configuration["yaml"]["customTags"]
             .as_array()
             .expect("customTags should be an array");
 
-        assert!(!tags.is_empty(), "customTags should not be empty");
-        assert!(
-            tags.contains(&json!("!Ref")),
-            "customTags should include !Ref",
-        );
+        assert!(tags.is_empty(), "customTags should default to empty");
     }
 
     #[test]
@@ -1396,7 +1375,8 @@ mod tests {
                     "disableDefaultProperties": false,
                     "maxItemsComputed": 42,
                     "customTags": [],
-                    "keyOrdering": true
+                    "keyOrdering": true,
+                    "enableStrictSchemaValidation": true
                 }
             })),
             None,
@@ -1411,6 +1391,7 @@ mod tests {
         assert_eq!(configuration["yaml"]["maxItemsComputed"], 42);
         assert_eq!(configuration["yaml"]["customTags"], json!([]));
         assert_eq!(configuration["yaml"]["keyOrdering"], true);
+        assert_eq!(configuration["yaml"]["enableStrictSchemaValidation"], true,);
     }
 
     #[test]
