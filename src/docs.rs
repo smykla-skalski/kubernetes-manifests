@@ -245,7 +245,15 @@ fn extract_text_content(html: &str) -> String {
         }
     }
 
-    result.trim().to_string()
+    decode_html_entities(result.trim())
+}
+
+fn decode_html_entities(text: &str) -> String {
+    text.replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&apos;", "'")
 }
 
 fn seek_to_anchor<'a>(html: &'a str, url: &str) -> &'a str {
@@ -384,5 +392,19 @@ mod tests {
         });
         let text = extract_text_content(&html);
         assert!(text.lines().count() <= 201);
+    }
+
+    #[test]
+    fn extract_text_content_decodes_html_entities() {
+        let html = "<p>defaults &amp; optional &lt;fields&gt;</p>";
+        let text = extract_text_content(html);
+        assert_eq!(text, "defaults & optional <fields>");
+    }
+
+    #[test]
+    fn extract_text_content_decodes_entities_in_preformatted_blocks() {
+        let html = "<pre><code>if x &lt; 10 &amp;&amp; y &gt; 0</code></pre>";
+        let text = extract_text_content(html);
+        assert!(text.contains("if x < 10 && y > 0"));
     }
 }
