@@ -19,17 +19,12 @@ const SETTINGS_HANDLER_PATHS: &[&str] = &[
 const INVALID_YAML_EDITOR_SCOPE_URI: &str = "{ section: '[yaml]', scopeUri: 'null' },";
 const PATCHED_YAML_EDITOR_SCOPE_URI: &str = "{ section: '[yaml]' },";
 
+#[derive(Default)]
 pub struct KubernetesLanguageServer {
     cached_server_script_path: Option<String>,
 }
 
 impl KubernetesLanguageServer {
-    pub const fn new() -> Self {
-        Self {
-            cached_server_script_path: None,
-        }
-    }
-
     pub fn language_server_command(
         &mut self,
         language_server_id: &LanguageServerId,
@@ -204,28 +199,7 @@ fn managed_node_command(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
-
-    fn command_settings(
-        path: Option<&str>,
-        arguments: Option<Vec<&str>>,
-        env: Option<Vec<(&str, &str)>>,
-    ) -> CommandSettings {
-        CommandSettings {
-            path: path.map(ToOwned::to_owned),
-            arguments: arguments.map(|arguments| {
-                arguments
-                    .into_iter()
-                    .map(ToOwned::to_owned)
-                    .collect::<Vec<_>>()
-            }),
-            env: env.map(|env| {
-                env.into_iter()
-                    .map(|(key, value)| (key.to_string(), value.to_string()))
-                    .collect::<HashMap<_, _>>()
-            }),
-        }
-    }
+    use crate::util::tests::command_settings;
 
     #[test]
     fn binary_command_uses_default_stdio_arguments_when_none_supplied() {

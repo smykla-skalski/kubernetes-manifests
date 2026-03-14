@@ -108,9 +108,9 @@ impl KubernetesExtension {
 impl zed::Extension for KubernetesExtension {
     fn new() -> Self {
         Self {
-            kubernetes_lsp: KubernetesLanguageServer::new(),
-            helm_lsp: HelmLanguageServer::new(),
-            context_server: KubernetesContextServer::new(),
+            kubernetes_lsp: KubernetesLanguageServer::default(),
+            helm_lsp: HelmLanguageServer::default(),
+            context_server: KubernetesContextServer::default(),
         }
     }
 

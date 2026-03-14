@@ -65,11 +65,11 @@ pub fn expand_tilde_with_home(value: &str, home_dir: Option<&str>) -> String {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use std::collections::HashMap;
 
-    fn command_settings(
+    pub fn command_settings(
         path: Option<&str>,
         arguments: Option<Vec<&str>>,
         env: Option<Vec<(&str, &str)>>,

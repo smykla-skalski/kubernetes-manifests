@@ -12,17 +12,12 @@ pub const CONTEXT_SERVER_NAME: &str = "kubernetes-context-server";
 const DEFAULT_BINARY: &str = "kubernetes-mcp-server";
 const GITHUB_REPO: &str = "strowk/mcp-k8s-go";
 
+#[derive(Default)]
 pub struct KubernetesContextServer {
     cached_binary_path: Option<String>,
 }
 
 impl KubernetesContextServer {
-    pub const fn new() -> Self {
-        Self {
-            cached_binary_path: None,
-        }
-    }
-
     pub fn context_server_command(
         &mut self,
         context_server_id: &ContextServerId,

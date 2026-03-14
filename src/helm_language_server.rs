@@ -12,17 +12,12 @@ pub const SERVER_NAME: &str = "helm-language-server";
 const BINARY_NAME: &str = "helm_ls";
 const GITHUB_REPO: &str = "mrjosh/helm-ls";
 
+#[derive(Default)]
 pub struct HelmLanguageServer {
     cached_binary_path: Option<String>,
 }
 
 impl HelmLanguageServer {
-    pub const fn new() -> Self {
-        Self {
-            cached_binary_path: None,
-        }
-    }
-
     pub fn language_server_command(
         &mut self,
         _language_server_id: &LanguageServerId,
