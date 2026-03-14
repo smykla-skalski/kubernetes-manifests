@@ -8,7 +8,11 @@ mod templates;
 use context_server::KubernetesContextServer;
 use helm_language_server::HelmLanguageServer;
 use language_server::{KubernetesLanguageServer, SERVER_NAME};
-use settings::{additional_yaml_server_configuration, merged_workspace_configuration};
+use settings::{
+    helm_workspace_configuration_schema, kubernetes_initialization_options_schema,
+    kubernetes_workspace_configuration, kubernetes_workspace_configuration_schema,
+    yaml_server_injection_configuration,
+};
 use templates::{resource_kinds, template_for_kind};
 use zed_extension_api::{
     self as zed,
@@ -145,11 +149,39 @@ impl zed::Extension for KubernetesExtension {
             .find(|(key, _)| key == "HOME")
             .map(|(_, value)| value);
 
-        Ok(Some(merged_workspace_configuration(
+        Ok(Some(kubernetes_workspace_configuration(
             user_settings,
             Some(&worktree_root),
             home_dir.as_deref(),
         )))
+    }
+
+    fn language_server_initialization_options_schema(
+        &mut self,
+        language_server_id: &LanguageServerId,
+        _worktree: &zed::Worktree,
+    ) -> Option<JsonValue> {
+        Self::ensure_known_server(language_server_id).ok()?;
+
+        if language_server_id.as_ref() == SERVER_NAME {
+            return Some(kubernetes_initialization_options_schema());
+        }
+
+        None
+    }
+
+    fn language_server_workspace_configuration_schema(
+        &mut self,
+        language_server_id: &LanguageServerId,
+        _worktree: &zed::Worktree,
+    ) -> Option<JsonValue> {
+        Self::ensure_known_server(language_server_id).ok()?;
+
+        match language_server_id.as_ref() {
+            SERVER_NAME => Some(kubernetes_workspace_configuration_schema()),
+            helm_language_server::SERVER_NAME => Some(helm_workspace_configuration_schema()),
+            _ => None,
+        }
     }
 
     fn language_server_initialization_options(
@@ -167,13 +199,32 @@ impl zed::Extension for KubernetesExtension {
 
     fn language_server_additional_workspace_configuration(
         &mut self,
-        _language_server_id: &LanguageServerId,
+        language_server_id: &LanguageServerId,
         target_language_server_id: &LanguageServerId,
-        _worktree: &zed::Worktree,
+        worktree: &zed::Worktree,
     ) -> Result<Option<JsonValue>> {
-        if target_language_server_id.as_ref() == "yaml-language-server" {
-            return Ok(Some(additional_yaml_server_configuration()));
+        Self::ensure_known_server(language_server_id)?;
+
+        if language_server_id.as_ref() == SERVER_NAME
+            && target_language_server_id.as_ref() == "yaml-language-server"
+        {
+            let user_settings = LspSettings::for_worktree(language_server_id.as_ref(), worktree)
+                .ok()
+                .and_then(|settings| settings.settings);
+            let worktree_root = worktree.root_path();
+            let home_dir = worktree
+                .shell_env()
+                .into_iter()
+                .find(|(key, _)| key == "HOME")
+                .map(|(_, value)| value);
+
+            return Ok(yaml_server_injection_configuration(
+                user_settings,
+                Some(&worktree_root),
+                home_dir.as_deref(),
+            ));
         }
+
         Ok(None)
     }
 
