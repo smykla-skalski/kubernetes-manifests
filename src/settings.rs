@@ -170,6 +170,16 @@ pub fn kubernetes_initialization_options_schema() -> Value {
 }
 
 #[cfg(feature = "next")]
+pub fn helm_initialization_options_schema() -> Value {
+    json!({
+        "type": "object",
+        "description": "Raw initialization options passed through to helm-language-server.",
+        "default": {},
+        "additionalProperties": true
+    })
+}
+
+#[cfg(feature = "next")]
 pub fn helm_workspace_configuration_schema() -> Value {
     json!({
         "type": "object",
@@ -1810,5 +1820,14 @@ mod tests {
                 ["type"],
             "object",
         );
+    }
+
+    #[cfg(feature = "next")]
+    #[test]
+    fn helm_initialization_options_schema_is_a_permissive_object() {
+        let schema = helm_initialization_options_schema();
+        assert_eq!(schema["type"], "object");
+        assert_eq!(schema["additionalProperties"], true);
+        assert_eq!(schema["default"], json!({}));
     }
 }

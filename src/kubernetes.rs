@@ -15,8 +15,8 @@ use helm_language_server::HelmLanguageServer;
 use language_server::{KubernetesLanguageServer, SERVER_NAME};
 #[cfg(feature = "next")]
 use settings::{
-    helm_workspace_configuration_schema, kubernetes_initialization_options_schema,
-    kubernetes_workspace_configuration_schema,
+    helm_initialization_options_schema, helm_workspace_configuration_schema,
+    kubernetes_initialization_options_schema, kubernetes_workspace_configuration_schema,
 };
 use settings::{kubernetes_workspace_configuration, yaml_server_injection_configuration};
 use templates::{resource_kinds, template_for_kind};
@@ -170,11 +170,11 @@ impl zed::Extension for KubernetesExtension {
     ) -> Option<JsonValue> {
         Self::ensure_known_server(language_server_id).ok()?;
 
-        if language_server_id.as_ref() == SERVER_NAME {
-            return Some(kubernetes_initialization_options_schema());
+        match language_server_id.as_ref() {
+            SERVER_NAME => Some(kubernetes_initialization_options_schema()),
+            helm_language_server::SERVER_NAME => Some(helm_initialization_options_schema()),
+            _ => None,
         }
-
-        None
     }
 
     #[cfg(feature = "next")]
