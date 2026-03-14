@@ -187,8 +187,24 @@ fn push_env_if_set(
 ) {
     if let Some(value) = settings.get(key).and_then(|v| v.as_str()) {
         if !value.is_empty() {
-            env.push((env_var.to_string(), value.to_string()));
+            env.push((env_var.to_string(), expand_tilde(value)));
         }
+    }
+}
+
+fn expand_tilde(value: &str) -> String {
+    let (os, _) = zed::current_platform();
+    let home_var = match os {
+        Os::Windows => "USERPROFILE",
+        _ => "HOME",
+    };
+    expand_tilde_with_home(value, env::var(home_var).ok().as_deref())
+}
+
+fn expand_tilde_with_home(value: &str, home_dir: Option<&str>) -> String {
+    match (value.strip_prefix("~/"), home_dir) {
+        (Some(rest), Some(home)) => format!("{home}/{rest}"),
+        _ => value.to_string(),
     }
 }
 
@@ -316,6 +332,38 @@ mod tests {
         assert_eq!(
             schema_keys, default_keys,
             "default settings keys should match schema properties",
+        );
+    }
+
+    #[test]
+    fn expand_tilde_with_home_expands_tilde_prefix() {
+        assert_eq!(
+            expand_tilde_with_home("~/.kube/config", Some("/home/user")),
+            "/home/user/.kube/config",
+        );
+    }
+
+    #[test]
+    fn expand_tilde_with_home_preserves_absolute_paths() {
+        assert_eq!(
+            expand_tilde_with_home("/etc/config", Some("/home/user")),
+            "/etc/config",
+        );
+    }
+
+    #[test]
+    fn expand_tilde_with_home_preserves_tilde_without_home() {
+        assert_eq!(
+            expand_tilde_with_home("~/.kube/config", None),
+            "~/.kube/config",
+        );
+    }
+
+    #[test]
+    fn expand_tilde_with_home_does_not_expand_other_user_tilde() {
+        assert_eq!(
+            expand_tilde_with_home("~other/.kube/config", Some("/home/user")),
+            "~other/.kube/config",
         );
     }
 
