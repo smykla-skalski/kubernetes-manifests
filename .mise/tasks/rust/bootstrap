@@ -2,8 +2,6 @@
 #MISE description="Prime the local Rust toolchain for parallel tasks"
 set -eu
 
-cd "${MISE_CONFIG_ROOT:-$PWD}"
-
 cargo_home="${CARGO_HOME:-tmp/cargo}"
 rustup_home="${RUSTUP_HOME:-tmp/rustup}"
 

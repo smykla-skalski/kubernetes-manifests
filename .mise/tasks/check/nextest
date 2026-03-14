@@ -3,5 +3,4 @@
 #MISE depends=["rust:bootstrap"]
 set -eu
 
-cd "${MISE_CONFIG_ROOT:-$PWD}"
 exec cargo nextest run --workspace --all-targets --no-fail-fast "$@"

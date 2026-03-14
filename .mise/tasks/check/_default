@@ -1,6 +1,0 @@
-#!/bin/sh
-#MISE description="Run the local automated validation suite"
-#MISE depends=["test", "lint"]
-set -eu
-
-:

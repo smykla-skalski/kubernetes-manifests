@@ -1,5 +1,4 @@
 [env]
-_.file = ".env.local"
 CARGO_HOME = "tmp/cargo"
 RUSTUP_HOME = "tmp/rustup"
 TOOLS_DIR = "tmp/tools"
@@ -9,3 +8,56 @@ ZED_EXTENSION_CLI_SHA = "03d8e9aee95ea6117d75a48bcac2e19241f6e667"
 ZED_PROCESS = "zed"
 ZED_WINDOW_OWNER = "Zed Preview"
 ZED_USER_DATA_DIR = "tmp/zed-validation"
+_.file = ".env.local"
+
+[tasks.check]
+depends = ["test", "lint"]
+description = "Run the local automated validation suite"
+
+[tasks.test]
+depends = ["check:nextest", "build:wasm"]
+description = "Run the automated test suite"
+
+[tasks.lint]
+depends = ["check:fmt", "check:clippy", "check:queries", "lint:swift"]
+description = "Run all lint and format validation tasks"
+
+[tasks."zed:deployment"]
+run = "mise run zed:open fixtures/valid/deployment.k8s.yaml"
+description = "Open the deployment fixture"
+
+[tasks."zed:deployment:foreground"]
+run = "mise run zed:open --foreground fixtures/valid/deployment.k8s.yaml"
+description = "Open the deployment fixture with foreground logs"
+
+[tasks."zed:embedded"]
+run = "mise run zed:open fixtures/embedded/example.md"
+description = "Open the Markdown embedded fixture"
+
+[tasks."zed:invalid"]
+run = "mise run zed:open fixtures/invalid/invalid-service.k8s.yaml"
+description = "Open the invalid fixture"
+
+[tasks."zed:multi-document"]
+run = "mise run zed:open fixtures/valid/multi-document.k8s.yaml"
+description = "Open the multi-document fixture"
+
+[tasks."zed:plain"]
+run = "mise run zed:open fixtures/valid/plain.yaml"
+description = "Open the plain YAML fixture"
+
+[tasks."zed:template"]
+run = "mise run zed:open fixtures/chart/templates/deployment.tpl"
+description = "Open the template fixture"
+
+[tasks."zed:repo"]
+run = "mise run zed:open ."
+description = "Open the repository root"
+
+[tasks."zed:foreground"]
+run = "mise run zed:open --foreground {{arg(name='path', default='.')}}"
+description = "Open Zed with foreground logs (alias for zed:open --foreground)"
+
+[tasks."zed:foreground:new"]
+run = "mise run zed:open --foreground --new {{arg(name='path', default='.')}}"
+description = "Open Zed in a new window with foreground logs"

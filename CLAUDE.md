@@ -12,7 +12,7 @@ The repo uses `mise` for task automation. Run `mise trust .mise.toml` once after
 
 ```sh
 mise run check          # full local gate (test + lint + packaging)
-mise run test           # cargo test + cargo nextest
+mise run test           # cargo nextest + extension.wasm rebuild
 mise run lint           # fmt --check, clippy, query formatting, swift formatting
 mise run build:wasm     # rebuild extension.wasm after Rust changes
 mise run package        # verify packaging with zed-extension CLI

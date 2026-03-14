@@ -3,5 +3,4 @@
 #MISE depends=["tools:install:ts-query-ls"]
 set -eu
 
-cd "${MISE_CONFIG_ROOT:-$PWD}"
 exec "$TOOLS_BIN_DIR/ts_query_ls" format --check .

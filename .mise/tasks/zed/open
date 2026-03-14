@@ -1,0 +1,34 @@
+#!/bin/sh
+#MISE description="Open Zed Preview in an isolated persistent profile"
+#USAGE flag "--foreground" help="Keep Zed in the foreground with debug logging"
+#USAGE flag "--new" help="Open in a new window"
+#USAGE flag "--user-data-dir <user_data_dir>" help="Profile directory for the isolated Zed session" env="ZED_USER_DATA_DIR"
+#USAGE arg "<path>" default="."
+set -eu
+
+user_data_dir="${usage_user_data_dir:-$ZED_USER_DATA_DIR}"
+target="${usage_path:-.}"
+repo_root="${MISE_PROJECT_ROOT:-$PWD}"
+mise run zed:prepare-profile --user-data-dir "$user_data_dir" >/dev/null
+
+case "$target" in
+  .)
+    set -- "$repo_root"
+    ;;
+  /*)
+    set -- "$repo_root" "$target"
+    ;;
+  *)
+    set -- "$repo_root" "$repo_root/$target"
+    ;;
+esac
+
+zed_flags=
+if [ "${usage_new:-false}" = "true" ]; then
+  zed_flags="$zed_flags --new"
+fi
+
+if [ "${usage_foreground:-false}" = "true" ]; then
+  exec env ZED_LOG="${ZED_LOG:-debug}" "$ZED_CLI" --foreground $zed_flags --zed "$ZED_APP" --user-data-dir "$user_data_dir" "$@"
+fi
+exec "$ZED_CLI" $zed_flags --zed "$ZED_APP" --user-data-dir "$user_data_dir" "$@"

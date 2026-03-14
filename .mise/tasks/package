@@ -3,7 +3,6 @@
 #MISE depends=["tools:install:zed-extension"]
 set -eu
 
-cd "${MISE_CONFIG_ROOT:-$PWD}"
 scratch_dir="$(mktemp -d)"
 output_dir="$(mktemp -d)"
 trap 'rm -rf "$scratch_dir" "$output_dir"' EXIT

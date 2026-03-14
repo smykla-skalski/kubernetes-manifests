@@ -1,6 +1,0 @@
-#!/bin/sh
-#MISE description="Run all lint and format validation tasks"
-#MISE depends=["check:fmt", "check:clippy", "check:queries", "lint:swift"]
-set -eu
-
-:

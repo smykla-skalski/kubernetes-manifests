@@ -6,7 +6,6 @@
 #USAGE flag "--features <features>" help="Optional Cargo features to enable while building extension.wasm" default="" env="K8S_EXTENSION_FEATURES"
 set -eu
 
-cd "${MISE_CONFIG_ROOT:-$PWD}"
 features="${usage_features:-${K8S_EXTENSION_FEATURES:-}}"
 
 set -- cargo build --target wasm32-wasip2 --target-dir target

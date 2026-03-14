@@ -1,7 +1,0 @@
-#!/bin/sh
-#MISE description="Run Rust unit tests"
-#MISE depends=["rust:bootstrap"]
-set -eu
-
-cd "${MISE_CONFIG_ROOT:-$PWD}"
-exec cargo test "$@"
