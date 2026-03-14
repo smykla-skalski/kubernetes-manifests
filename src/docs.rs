@@ -70,8 +70,15 @@ pub fn suggest_packages() -> Vec<String> {
     PACKAGES.iter().map(|(name, _)| name.to_string()).collect()
 }
 
+fn package_anchor(kind: &str) -> Option<&'static str> {
+    PACKAGES
+        .iter()
+        .find(|(name, _)| *name == kind)
+        .map(|(_, anchor)| *anchor)
+}
+
 pub fn explain_resource(kind: &str) -> String {
-    let Some((_, anchor)) = PACKAGES.iter().find(|(name, _)| *name == kind) else {
+    let Some(anchor) = package_anchor(kind) else {
         return format!("# {kind}\n\nNo documentation available for this resource type.");
     };
 
@@ -108,10 +115,8 @@ pub fn explain_resource(kind: &str) -> String {
 }
 
 pub fn index_package(package: &str, database: &KeyValueStore) -> zed::Result<()> {
-    let (_, anchor) = PACKAGES
-        .iter()
-        .find(|(name, _)| *name == package)
-        .ok_or_else(|| format!("Unknown Kubernetes resource: {package}"))?;
+    let anchor =
+        package_anchor(package).ok_or_else(|| format!("Unknown Kubernetes resource: {package}"))?;
 
     let url = format!("{KUBERNETES_DOCS_BASE}/{anchor}");
 

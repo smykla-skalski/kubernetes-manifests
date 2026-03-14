@@ -149,11 +149,7 @@ impl zed::Extension for KubernetesExtension {
             .ok()
             .and_then(|settings| settings.settings);
         let worktree_root = worktree.root_path();
-        let home_dir = worktree
-            .shell_env()
-            .into_iter()
-            .find(|(key, _)| key == "HOME")
-            .map(|(_, value)| value);
+        let home_dir = home_dir_from_env(worktree);
 
         Ok(Some(kubernetes_workspace_configuration(
             user_settings,
@@ -220,11 +216,7 @@ impl zed::Extension for KubernetesExtension {
                 .ok()
                 .and_then(|settings| settings.settings);
             let worktree_root = worktree.root_path();
-            let home_dir = worktree
-                .shell_env()
-                .into_iter()
-                .find(|(key, _)| key == "HOME")
-                .map(|(_, value)| value);
+            let home_dir = home_dir_from_env(worktree);
 
             return Ok(yaml_server_injection_configuration(
                 user_settings,
@@ -371,6 +363,14 @@ impl zed::Extension for KubernetesExtension {
         Self::ensure_known_context_server(context_server_id)?;
         Ok(Some(context_server::context_server_configuration()))
     }
+}
+
+fn home_dir_from_env(worktree: &zed::Worktree) -> Option<String> {
+    worktree
+        .shell_env()
+        .into_iter()
+        .find(|(key, _)| key == "HOME")
+        .map(|(_, value)| value)
 }
 
 zed::register_extension!(KubernetesExtension);
