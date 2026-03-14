@@ -107,7 +107,8 @@ fn download_binary() -> Result<String, String> {
             require_assets: true,
             pre_release: false,
         },
-    )?;
+    )
+    .map_err(|e| format!("failed to fetch latest mcp-k8s-go release: {e}"))?;
 
     let asset = release
         .assets
@@ -120,8 +121,10 @@ fn download_binary() -> Result<String, String> {
 
     let binary_path = format!("{version_dir}/{binary_name}");
 
-    zed::download_file(&asset.download_url, &version_dir, file_type)?;
-    zed::make_file_executable(&binary_path)?;
+    zed::download_file(&asset.download_url, &version_dir, file_type)
+        .map_err(|e| format!("failed to download mcp-k8s-go archive: {e}"))?;
+    zed::make_file_executable(&binary_path)
+        .map_err(|e| format!("failed to make mcp-k8s-go binary executable: {e}"))?;
 
     util::remove_outdated_versions("mcp-k8s-go-", &version_dir).ok();
 

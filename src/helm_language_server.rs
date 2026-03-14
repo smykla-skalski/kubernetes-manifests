@@ -87,7 +87,8 @@ impl HelmLanguageServer {
                 require_assets: true,
                 pre_release: false,
             },
-        )?;
+        )
+        .map_err(|e| format!("failed to fetch latest helm-ls release: {e}"))?;
 
         let asset = release
             .assets
@@ -104,8 +105,10 @@ impl HelmLanguageServer {
             &asset.download_url,
             &binary_path,
             DownloadedFileType::Uncompressed,
-        )?;
-        zed::make_file_executable(&binary_path)?;
+        )
+        .map_err(|e| format!("failed to download helm-ls binary: {e}"))?;
+        zed::make_file_executable(&binary_path)
+            .map_err(|e| format!("failed to make helm-ls binary executable: {e}"))?;
 
         util::remove_outdated_versions("helm-ls-", &version_dir).ok();
 
