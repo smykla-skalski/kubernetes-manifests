@@ -22,6 +22,6 @@ case "$target" in
 esac
 
 if [ "${KUBERNETES_MANIFESTS_ZED_NEW_WINDOW:-0}" = "1" ]; then
-  exec "$ZED_CLI" --foreground --new --zed "$ZED_APP" --user-data-dir "$user_data_dir" "$@"
+  exec env ZED_LOG="${ZED_LOG:-debug}" "$ZED_CLI" --foreground --new --zed "$ZED_APP" --user-data-dir "$user_data_dir" "$@"
 fi
-exec "$ZED_CLI" --foreground --zed "$ZED_APP" --user-data-dir "$user_data_dir" "$@"
+exec env ZED_LOG="${ZED_LOG:-debug}" "$ZED_CLI" --foreground --zed "$ZED_APP" --user-data-dir "$user_data_dir" "$@"

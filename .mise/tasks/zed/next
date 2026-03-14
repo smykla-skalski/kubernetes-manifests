@@ -73,7 +73,7 @@ if [ "${KUBERNETES_MANIFESTS_ZED_NEW_WINDOW:-0}" = "1" ]; then
   launch_args="--new"
 fi
 
-env -u CARGO_HOME -u RUSTUP_HOME -u TOOLS_DIR -u TOOLS_BIN_DIR "$zed_cli" --nightly $launch_args --user-data-dir "$user_data_dir" "$workspace_target"
+env -u CARGO_HOME -u RUSTUP_HOME -u TOOLS_DIR -u TOOLS_BIN_DIR ZED_LOG="${ZED_LOG:-debug}" "$zed_cli" --nightly $launch_args --user-data-dir "$user_data_dir" "$workspace_target"
 
 if [ -n "${extra_target:-}" ] && [ "$extra_target" != "$workspace_target" ]; then
   for _ in 1 2 3 4 5 6 7 8 9 10; do

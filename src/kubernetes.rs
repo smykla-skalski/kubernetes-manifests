@@ -751,6 +751,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::literal_string_with_formatting_args)]
     fn zed_next_task_installs_next_extension_and_launches_nightly() {
         let next_task = read_repo_file(".mise/tasks/zed/next");
 
@@ -793,9 +794,9 @@ mod tests {
         );
         assert!(
             next_task.contains(
-                "env -u CARGO_HOME -u RUSTUP_HOME -u TOOLS_DIR -u TOOLS_BIN_DIR \"$zed_cli\" --nightly $launch_args --user-data-dir \"$user_data_dir\" \"$workspace_target\""
+                "env -u CARGO_HOME -u RUSTUP_HOME -u TOOLS_DIR -u TOOLS_BIN_DIR ZED_LOG=\"${ZED_LOG:-debug}\" \"$zed_cli\" --nightly $launch_args --user-data-dir \"$user_data_dir\" \"$workspace_target\""
             ),
-            "zed:next should launch Zed through the Nightly channel without forcing stateless mode",
+            "zed:next should launch Zed through the Nightly channel with debug logging",
         );
         assert!(
             next_task.contains("KUBERNETES_MANIFESTS_ZED_NEW_WINDOW"),

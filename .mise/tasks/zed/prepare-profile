@@ -17,6 +17,22 @@ cat >"$settings_path" <<'JSON'
 {
   "session": {
     "trust_all_worktrees": true
+  },
+  "lsp": {
+    "kubernetes-language-server": {
+      "settings": {
+        "kubernetes": {
+          "logLevel": "debug"
+        }
+      }
+    },
+    "helm-language-server": {
+      "settings": {
+        "helm-ls": {
+          "logLevel": "debug"
+        }
+      }
+    }
   }
 }
 JSON
