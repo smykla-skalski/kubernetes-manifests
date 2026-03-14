@@ -947,17 +947,30 @@ fn apply_curated_workspace_settings(
 ) {
     merge_json_value_into(curated_settings.workspace_overrides.clone(), configuration);
 
-    let schemas = ensure_yaml_schemas_object(configuration);
-    if !curated_settings.include_default_schemas {
-        schemas.clear();
-    }
+    if let Some(schemas) = configuration
+        .as_object_mut()
+        .map(|c| {
+            c.entry("yaml".to_string())
+                .or_insert_with(|| Value::Object(Map::new()))
+        })
+        .and_then(Value::as_object_mut)
+        .map(|yaml| {
+            yaml.entry("schemas".to_string())
+                .or_insert_with(|| Value::Object(Map::new()))
+        })
+        .and_then(Value::as_object_mut)
+    {
+        if !curated_settings.include_default_schemas {
+            schemas.clear();
+        }
 
-    let resolved_schema_associations = resolve_schema_map_paths(
-        curated_settings.schema_associations.clone(),
-        worktree_root,
-        home_dir,
-    );
-    merge_json_object_into(resolved_schema_associations, schemas);
+        let resolved_schema_associations = resolve_schema_map_paths(
+            curated_settings.schema_associations.clone(),
+            worktree_root,
+            home_dir,
+        );
+        merge_json_object_into(resolved_schema_associations, schemas);
+    }
 }
 
 fn parse_curated_object_bool(
@@ -1033,10 +1046,9 @@ fn set_workspace_override(workspace_overrides: &mut Value, path: &[&str], value:
         if !current.is_object() {
             *current = Value::Object(Map::new());
         }
-
-        let current_object = current
-            .as_object_mut()
-            .expect("workspace overrides should remain objects");
+        let Some(current_object) = current.as_object_mut() else {
+            return;
+        };
         current = current_object
             .entry((*segment).to_string())
             .or_insert_with(|| Value::Object(Map::new()));
@@ -1045,28 +1057,11 @@ fn set_workspace_override(workspace_overrides: &mut Value, path: &[&str], value:
     if !current.is_object() {
         *current = Value::Object(Map::new());
     }
-
-    if let Some(last_segment) = path.last() {
-        current
-            .as_object_mut()
-            .expect("workspace overrides should remain objects")
-            .insert((*last_segment).to_string(), value);
+    if let Some(last_segment) = path.last()
+        && let Some(object) = current.as_object_mut()
+    {
+        object.insert((*last_segment).to_string(), value);
     }
-}
-
-fn ensure_yaml_schemas_object(configuration: &mut Value) -> &mut Map<String, Value> {
-    let configuration = configuration
-        .as_object_mut()
-        .expect("workspace configuration should be an object");
-    let yaml = configuration
-        .entry("yaml".to_string())
-        .or_insert_with(|| Value::Object(Map::new()))
-        .as_object_mut()
-        .expect("yaml settings should be an object");
-    yaml.entry("schemas".to_string())
-        .or_insert_with(|| Value::Object(Map::new()))
-        .as_object_mut()
-        .expect("yaml.schemas should be an object")
 }
 
 fn resolve_workspace_schema_paths(
