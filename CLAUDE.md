@@ -93,10 +93,9 @@ Language definitions live in `languages/kubernetes/config.toml` (Tree-sitter YAM
 - When `zed:next` targets the real Nightly profile on macOS, config still comes from `~/.config/zed/settings.json`, not `~/Library/Application Support/Zed/config/settings.json`. Restricted Mode still applies, so Nightly will log `Waiting for worktree ... to be trusted` and will not start `kubernetes-language-server` or `helm-language-server` until the repo is trusted or `nightly.session.trust_all_worktrees` is enabled in the real settings file. The task should not set `ZED_STATELESS`; that env var forces Zed onto an in-memory DB and wipes persisted trusted-worktree state between launches.
 - `mise run zed:install-nightly` uses Zed's official install script with `ZED_CHANNEL=nightly` to install that real Nightly app bundle when it is missing.
 - `mise run zed:next [path]` is the single-command happy path for the unreleased API: it ensures Zed Nightly exists, restarts any already running Nightly instance, replaces the extension in the real Nightly profile with the generated next dev extension, clears repo-relative `CARGO_HOME` and `RUSTUP_HOME` before launch, and launches `zed --nightly` against that same profile.
-- On this machine, keep `~/.local/bin/zed` pointed at Zed Nightly. Do not recreate the old `~/usr/local/bin/zed` Preview wrapper unless the user explicitly asks to route terminal `zed` invocations back to Preview.
 - Zed Stable and Preview reject unreleased wasm API versions. The `next` feature is only valid when you load the extension in Zed Nightly or a local Zed Dev build.
 - The `first_line_pattern` regex in `config.toml` uses `(?m)` multiline mode and `\A` anchor - test changes with `cargo nextest run` before manual Zed validation, since the Rust test suite exercises real fixture files against the compiled regex
-- `zed:sync-extension` moves the isolated profile's `extensions/work/kubernetes` aside to force a fresh language-server install. Without this, stale cached state survives across `build:wasm` rebuilds
+- `zed:refresh-runtime` moves the isolated profile's `extensions/work/kubernetes` aside to force a fresh language-server install. Without this, stale cached state survives across `build:wasm` rebuilds
 
 ## Pre-commit workflow
 
