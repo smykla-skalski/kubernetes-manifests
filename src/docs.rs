@@ -5,8 +5,9 @@ use zed_extension_api::{
 
 const DOCS_PROVIDER: &str = "kubernetes";
 
-const KUBERNETES_DOCS_BASE: &str =
-    "https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35";
+/// Kubernetes minor version for API reference links.
+/// Bump when a new Kubernetes release ships updated generated docs.
+const KUBERNETES_DOCS_VERSION: &str = "v1.35";
 
 const PACKAGES: &[(&str, &str)] = &[
     ("ClusterRole", "#clusterrole-v1-rbac-authorization-k8s-io"),
@@ -77,12 +78,18 @@ fn package_anchor(kind: &str) -> Option<&'static str> {
         .map(|(_, anchor)| *anchor)
 }
 
+fn kubernetes_docs_url(anchor: &str) -> String {
+    format!(
+        "https://kubernetes.io/docs/reference/generated/kubernetes-api/{KUBERNETES_DOCS_VERSION}/{anchor}"
+    )
+}
+
 pub fn explain_resource(kind: &str) -> String {
     let Some(anchor) = package_anchor(kind) else {
         return format!("# {kind}\n\nNo documentation available for this resource type.");
     };
 
-    let url = format!("{KUBERNETES_DOCS_BASE}/{anchor}");
+    let url = kubernetes_docs_url(anchor);
 
     let response = fetch(&HttpRequest {
         method: HttpMethod::Get,
@@ -118,7 +125,7 @@ pub fn index_package(package: &str, database: &KeyValueStore) -> zed::Result<()>
     let anchor =
         package_anchor(package).ok_or_else(|| format!("Unknown Kubernetes resource: {package}"))?;
 
-    let url = format!("{KUBERNETES_DOCS_BASE}/{anchor}");
+    let url = kubernetes_docs_url(anchor);
 
     let response = fetch(&HttpRequest {
         method: HttpMethod::Get,
@@ -152,7 +159,7 @@ pub fn index_package(package: &str, database: &KeyValueStore) -> zed::Result<()>
 }
 
 fn index_fallback(package: &str, anchor: &str, database: &KeyValueStore) -> zed::Result<()> {
-    let url = format!("{KUBERNETES_DOCS_BASE}/{anchor}");
+    let url = kubernetes_docs_url(anchor);
     database.insert(
         &format!("{package}/overview"),
         &format!(
