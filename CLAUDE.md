@@ -37,9 +37,9 @@ mise run zed:prepare-next-dev-source # generate the dev source tree under /tmp w
 mise run zed:install-next-extension  # install the generated next-feature dev extension into a Zed profile
 mise run zed:install-nightly         # install Zed Nightly itself through the official installer
 mise run zed:next <path>             # install Nightly if needed, replace the real Nightly-profile dev extension, and launch it
-mise run zed:sync-extension          # rotate stale runtime cache
-mise run zed:deployment              # open deployment fixture in isolated profile
-mise run zed:foreground <path>       # launch Zed with app logs visible
+mise run zed:open <path>              # open a fixture or directory in the isolated profile
+mise run zed:open --foreground <path> # same, with app logs on stdout
+mise run zed:refresh-runtime         # rotate stale runtime cache
 ```
 
 The manual validation checklist in README.md covers fixture-based checks across `fixtures/valid/`, `fixtures/invalid/`, `fixtures/embedded/`, and `fixtures/chart/templates/`. Run it after the automated checks pass.
