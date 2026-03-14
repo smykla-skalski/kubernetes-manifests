@@ -15,13 +15,15 @@ spec:
         - sleep 3600
     - name: init-script
       image: alpine:latest
-      command: |
-        #!/bin/sh
-        set -e
-        echo "running init"
-        if [ -f /config/ready ]; then
-          echo "config found"
-        fi
+      command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "running init"
+          if [ -f /config/ready ]; then
+            echo "config found"
+          fi
       env:
         - name: APP_ENV
           value: production
