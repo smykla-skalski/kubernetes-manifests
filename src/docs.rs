@@ -96,7 +96,7 @@ pub fn explain_resource(kind: &str) -> String {
         }
     };
 
-    let content = extract_text_content(&body);
+    let content = extract_text_content(seek_to_anchor(&body, &url));
 
     if content.is_empty() {
         return format!(
@@ -129,7 +129,7 @@ pub fn index_package(package: &str, database: &KeyValueStore) -> zed::Result<()>
         Err(_) => return index_fallback(package, anchor, database),
     };
 
-    let content = extract_text_content(&body);
+    let content = extract_text_content(seek_to_anchor(&body, &url));
 
     if content.is_empty() {
         return index_fallback(package, anchor, database);
@@ -237,6 +237,20 @@ fn extract_text_content(html: &str) -> String {
     result.trim().to_string()
 }
 
+fn seek_to_anchor<'a>(html: &'a str, url: &str) -> &'a str {
+    let anchor = match url.rsplit_once('#') {
+        Some((_, fragment)) if !fragment.is_empty() => fragment,
+        _ => return html,
+    };
+    for pattern in [format!("id=\"{anchor}\""), format!("id='{anchor}'")] {
+        if let Some(pos) = html.find(pattern.as_str()) {
+            let tag_start = html[..pos].rfind('<').unwrap_or(pos);
+            return &html[tag_start..];
+        }
+    }
+    html
+}
+
 fn push_newline(result: &mut String, line_count: &mut usize) {
     if !result.ends_with('\n') {
         result.push('\n');
@@ -261,6 +275,45 @@ mod tests {
         assert!(packages.contains(&"Service".to_string()));
         assert!(packages.contains(&"ConfigMap".to_string()));
         assert_eq!(packages.len(), PACKAGES.len());
+    }
+
+    #[test]
+    fn seek_to_anchor_finds_id_with_double_quotes() {
+        let html = r#"<div>preamble</div><h2 id="deployment-v1-apps">Deployment</h2><p>body</p>"#;
+        let result = seek_to_anchor(html, "https://example.com/api#deployment-v1-apps");
+        assert!(
+            result.starts_with("<h2"),
+            "should start from the tag containing the anchor id",
+        );
+        assert!(result.contains("Deployment"));
+    }
+
+    #[test]
+    fn seek_to_anchor_finds_id_with_single_quotes() {
+        let html = "<div>preamble</div><h2 id='my-anchor'>Title</h2>";
+        let result = seek_to_anchor(html, "https://example.com/#my-anchor");
+        assert!(result.starts_with("<h2"));
+    }
+
+    #[test]
+    fn seek_to_anchor_returns_full_html_without_fragment() {
+        let html = "<div>content</div>";
+        let result = seek_to_anchor(html, "https://example.com/api");
+        assert_eq!(result, html);
+    }
+
+    #[test]
+    fn seek_to_anchor_returns_full_html_when_anchor_not_found() {
+        let html = "<div>content</div>";
+        let result = seek_to_anchor(html, "https://example.com/#nonexistent");
+        assert_eq!(result, html);
+    }
+
+    #[test]
+    fn seek_to_anchor_returns_full_html_with_empty_fragment() {
+        let html = "<div>content</div>";
+        let result = seek_to_anchor(html, "https://example.com/#");
+        assert_eq!(result, html);
     }
 
     #[test]
