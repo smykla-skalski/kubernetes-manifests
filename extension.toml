@@ -1,7 +1,7 @@
 id = "kubernetes"
 name = "Kubernetes"
 description = "Kubernetes support for Zed."
-version = "0.8.1"
+version = "0.9.0"
 schema_version = 1
 authors = ["Bart Smykla <bartek@smykla.com>"]
 repository = "https://github.com/smykla-skalski/kubernetes-manifests"
@@ -16,11 +16,15 @@ languages = ["Kubernetes"]
 
 [language_servers.helm-language-server]
 name = "Helm Language Server"
-languages = ["Kubernetes"]
+languages = ["Helm"]
 
 [grammars.yaml]
 repository = "https://github.com/zed-industries/tree-sitter-yaml"
 commit = "baff0b51c64ef6a1fb1f8390f3ad6015b83ec13a"
+
+[grammars.gotmpl]
+repository = "https://github.com/ngalaiko/tree-sitter-go-template"
+commit = "04270cd3512e2c7de0c5f2823725d7b0c4c01fda"
 
 [context_servers.kubernetes-context-server]
 

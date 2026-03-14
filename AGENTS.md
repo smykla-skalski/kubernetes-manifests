@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-`src/` holds the Rust extension code. Keep [src/kubernetes.rs](src/kubernetes.rs) as the thin entrypoint, [src/language_server.rs](src/language_server.rs) for `yaml-language-server` resolution and command assembly, and [src/settings.rs](src/settings.rs) for pure configuration merge logic. [languages/kubernetes/](languages/kubernetes/) contains language config and query files. [fixtures/valid](fixtures/valid), [fixtures/invalid](fixtures/invalid), [fixtures/embedded](fixtures/embedded), and [fixtures/templates](fixtures/templates) drive manual validation. [extension.toml](extension.toml) defines the published Zed extension, while [.mise/tasks/](.mise/tasks/) and `.mise/*.swift` contain local automation and macOS Accessibility helpers.
+`src/` holds the Rust extension code. Keep [src/kubernetes.rs](src/kubernetes.rs) as the thin entrypoint, [src/language_server.rs](src/language_server.rs) for `yaml-language-server` resolution and command assembly, and [src/settings.rs](src/settings.rs) for pure configuration merge logic. [languages/kubernetes/](languages/kubernetes/) contains language config and query files. [fixtures/valid](fixtures/valid), [fixtures/invalid](fixtures/invalid), [fixtures/embedded](fixtures/embedded), and [fixtures/chart/templates](fixtures/chart/templates) drive manual validation. [extension.toml](extension.toml) defines the published Zed extension, while [.mise/tasks/](.mise/tasks/) and `.mise/*.swift` contain local automation and macOS Accessibility helpers.
 
 ## Build, Test, and Development Commands
 

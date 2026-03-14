@@ -42,7 +42,7 @@ mise run zed:deployment              # open deployment fixture in isolated profi
 mise run zed:foreground <path>       # launch Zed with app logs visible
 ```
 
-The manual validation checklist in README.md covers fixture-based checks across `fixtures/valid/`, `fixtures/invalid/`, `fixtures/embedded/`, and `fixtures/templates/`. Run it after the automated checks pass.
+The manual validation checklist in README.md covers fixture-based checks across `fixtures/valid/`, `fixtures/invalid/`, `fixtures/embedded/`, and `fixtures/chart/templates/`. Run it after the automated checks pass.
 
 ## Architecture
 
@@ -55,9 +55,9 @@ The extension builds as a single `cdylib` WebAssembly crate with a thin entrypoi
 - `src/context_server.rs` - resolves the Kubernetes context server command and exposes typed `settings_schema` plus `default_settings` for the context-server UI.
 - `src/docs.rs` and `src/templates.rs` - provide docs indexing/explanation helpers and slash-command manifest templates.
 
-Language definition lives in `languages/kubernetes/config.toml` with Tree-sitter query files (`highlights.scm`, `outline.scm`, etc.) alongside it. The `first_line_pattern` regex does the plain-YAML Kubernetes auto-detection within Zed's 256-character content window.
+Language definitions live in `languages/kubernetes/config.toml` (Tree-sitter YAML grammar) and `languages/helm/config.toml` (tree-sitter-go-template `gotmpl` grammar) with query files alongside each. The Kubernetes `first_line_pattern` regex does plain-YAML Kubernetes auto-detection within Zed's 256-character content window. The Helm `first_line_pattern` matches files starting with `{{` or `{{-`.
 
-`extension.toml` declares the extension metadata, grammar source, npm capability for `yaml-language-server`, and the language server ID `kubernetes-language-server`.
+`extension.toml` declares the extension metadata, grammar sources (`yaml` and `gotmpl`), npm capability for `yaml-language-server`, and the language server IDs `kubernetes-language-server` (serves Kubernetes) and `helm-language-server` (serves Helm).
 
 ## Configuration surfaces
 

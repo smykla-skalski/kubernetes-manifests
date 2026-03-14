@@ -65,4 +65,9 @@ if [ ! -f "$source_dir/grammars/yaml.wasm" ]; then
   exit 1
 fi
 
+if [ ! -f "$source_dir/grammars/gotmpl.wasm" ]; then
+  echo "zed:prepare-next-dev-source failed to prepare $source_dir/grammars/gotmpl.wasm" >&2
+  exit 1
+fi
+
 printf 'prepared next dev source: %s\n' "$source_dir"

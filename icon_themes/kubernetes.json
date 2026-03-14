@@ -15,7 +15,8 @@
         "kustomize.yaml": "kubernetes",
         "kustomize.yml": "kubernetes",
         "helm.yaml": "helm",
-        "helm.yml": "helm"
+        "helm.yml": "helm",
+        "tpl": "helm"
       },
       "file_stems": {
         "kustomization": "kubernetes",
@@ -57,7 +58,8 @@
         "kustomize.yaml": "kubernetes",
         "kustomize.yml": "kubernetes",
         "helm.yaml": "helm",
-        "helm.yml": "helm"
+        "helm.yml": "helm",
+        "tpl": "helm"
       },
       "file_stems": {
         "kustomization": "kubernetes",

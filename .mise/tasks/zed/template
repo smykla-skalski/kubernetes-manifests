@@ -4,4 +4,4 @@
 set -eu
 
 user_data_dir="${usage_user_data_dir:-$ZED_USER_DATA_DIR}"
-exec mise run zed:open --user-data-dir "$user_data_dir" fixtures/templates/deployment.tpl
+exec mise run zed:open --user-data-dir "$user_data_dir" fixtures/chart/templates/deployment.tpl

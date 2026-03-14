@@ -1,6 +1,6 @@
 # Kubernetes
 
-Kubernetes is a standalone Zed extension that adds a distinct `Kubernetes` language mode on top of the same Tree-sitter YAML grammar revision Zed uses for built-in YAML support, backed by `yaml-language-server`. The repo also ships an optional Helm language server integration and a Kubernetes context server for chat workflows.
+Kubernetes is a standalone Zed extension that adds a distinct `Kubernetes` language mode on top of the same Tree-sitter YAML grammar revision Zed uses for built-in YAML support, backed by `yaml-language-server`. It also adds a `Helm` language mode backed by tree-sitter-go-template with `helm-language-server` as the primary server, plus a Kubernetes context server for chat workflows.
 
 The extension auto-detects Kubernetes in three ways: by Kubernetes-specific file suffixes (`*.k8s.yaml`, `*.kubernetes.yml`), by the `.kyaml` extension (Kubernetes 1.34+ flow-style YAML), and by best-effort content matching when the very first line starts with `apiVersion:`. Files opened with a generic `.yaml` extension are still claimed by Zed's built-in YAML language, which wins over content-based detection unless you explicitly remap those file types or switch the language manually.
 
@@ -14,7 +14,7 @@ The important boundary is that Zed does not surface these `next`-only LSP schema
 
 - `lsp.kubernetes-language-server.*` for buffers that are actually in `Kubernetes` mode
 - `lsp.yaml-language-server.*` for plain YAML buffers that stay in built-in `YAML` mode
-- `lsp.helm-language-server.*` after you explicitly opt Helm into `languages.Kubernetes.language_servers`
+- `lsp.helm-language-server.*` for buffers in `Helm` mode
 - `context_servers.kubernetes-context-server.*` for the optional context server
 
 The Kubernetes language server has two configuration layers under `lsp.kubernetes-language-server.settings`:
@@ -107,15 +107,24 @@ If you want to keep generic `.yaml` files on built-in `YAML`, configure them thr
 }
 ```
 
-To enable Helm tooling inside `Kubernetes` mode, opt `helm-language-server` into the language server list and then configure it through its own raw `helm-ls` block:
+Helm template files (`.tpl` and `.yaml` inside chart `templates/` dirs) get their own `Helm` language mode backed by tree-sitter-go-template. This keeps `yaml-language-server` schema validation off template files where Go expressions like `{{ default 2 .Values.replicas }}` would produce false errors.
+
+`.tpl` files auto-detect as Helm via `path_suffixes`. Files starting with `{{` or `{{-` match the Helm `first_line_pattern`. For `.yaml` files inside `templates/` directories, add a `file_types` mapping to your project settings:
 
 ```json
 {
-  "languages": {
-    "Kubernetes": {
-      "language_servers": ["helm-language-server", "..."]
-    }
-  },
+  "file_types": {
+    "Helm": ["**/templates/**/*.yaml", "**/templates/**/*.yml"]
+  }
+}
+```
+
+The community Helm extension (cabrinha/helm.zed) would conflict with this extension's Helm support. Uninstall it if you are using this extension.
+
+Configure `helm-language-server` through its own `lsp` block:
+
+```json
+{
   "lsp": {
     "helm-language-server": {
       "binary": {
@@ -133,8 +142,6 @@ To enable Helm tooling inside `Kubernetes` mode, opt `helm-language-server` into
   }
 }
 ```
-
-The Helm server stays opt-in because many Kubernetes users do not edit Helm templates in every project. The repo does not add a separate Helm language or template-language mode; the Helm integration is a second LSP attached to `Kubernetes` buffers when you opt in.
 
 The repo also ships a small optional icon theme overlay at `icon_themes/kubernetes.json`. Select the `Kubernetes` icon theme in Zed if you want Kubernetes-specific file-name matches and the language picker to use the bundled Kubernetes icon instead of YAML's default icon. Generic plain `.yaml` file icons still follow the active file icon theme.
 
@@ -391,7 +398,7 @@ Troubleshooting notes:
 - Zed's Rust dev-extension builder probes `rustc --print sysroot` before it changes directories into the extension. Launch Nightly through `mise run zed:next` or clear repo-relative `CARGO_HOME` and `RUSTUP_HOME` yourself first, otherwise Zed can inherit `tmp/rustup` and `tmp/cargo` from `mise` and fail before the build even starts.
 - The managed YAML LS fallback currently patches the installed `settingsHandlers.js` at runtime to remove an upstream unreleased `scopeUri: "null"` request that Zed rejects with `relative URL without a base`. If that log line comes back, first check whether a newer published `yaml-language-server` release has made the local patch obsolete.
 - After Rust changes or managed LSP bootstrap changes, rerun `mise run build:wasm`, then restart Zed or run `mise run zed:sync-extension` before reopening fixtures.
-- Treat the fixtures as an expectation matrix: `fixtures/valid/*` should stay free of unexpected diagnostics, `fixtures/invalid/*` should report diagnostics, `fixtures/embedded/*` is syntax-highlighting-only, and `fixtures/templates/*` exercises the manual whole-buffer language-selection path.
+- Treat the fixtures as an expectation matrix: `fixtures/valid/*` should stay free of unexpected diagnostics, `fixtures/invalid/*` should report diagnostics, `fixtures/embedded/*` is syntax-highlighting-only, and `fixtures/chart/templates/*` exercises the Helm language mode.
 
 1. Run `mise run test`.
 2. Run `mise run lint`.
@@ -406,8 +413,11 @@ Troubleshooting notes:
 11. Open `fixtures/invalid/plain-non-kubernetes.yaml` and confirm it stays on built-in `YAML`.
 12. Open `fixtures/invalid/invalid-service.k8s.yaml` and confirm diagnostics are reported.
 13. Open `fixtures/embedded/example.md` and confirm the fenced `kubernetes` code block gets Kubernetes syntax highlighting.
-14. Open `fixtures/templates/deployment.tpl`, manually select the `Kubernetes` language for the whole buffer, and confirm the manual whole-buffer workflow behaves as expected for a template-oriented file.
-15. Open `fixtures/valid/deployment.kyaml` and confirm Zed auto-detects it as `Kubernetes`. Verify flow-style highlights: `apiVersion`/`kind` get keyword color, `metadata`/`spec` get type color, `name`/`replicas`/`containers` get attribute color. Check the outline panel shows "Deployment demo-deployment" with nested sections.
-16. Open `fixtures/valid/secret.kyaml` and confirm sensitive values (`password`, `tls.key`) are redacted.
-17. Confirm the language-server status UI shows `Kubernetes Language Server`.
-18. Select the bundled `Kubernetes` icon theme and confirm `*.k8s.yaml`, `*.kubernetes.yml`, and `*.kyaml` files use the Kubernetes icon in the language picker instead of the YAML fallback.
+14. Open `fixtures/chart/templates/deployment.tpl` and confirm Zed auto-detects it as `Helm` (not Kubernetes). Verify Go template highlights: `{{`/`}}` get special color, functions colored, `.Values.*` as property. Verify YAML parts get basic YAML highlighting via injection. Confirm NO schema validation errors from yaml-language-server on template expressions.
+15. Confirm helm-language-server starts for the Helm buffer (check language server status). Type `.Values.` and verify completions from `fixtures/chart/values.yaml` appear (replicas, image, service, resources, etc.).
+16. Open `fixtures/chart/templates/helpers.tpl` and confirm it auto-detects as Helm via first_line_pattern.
+17. Confirm helm icon appears on `.tpl` files in file tree with bundled icon theme.
+18. Open `fixtures/valid/deployment.kyaml` and confirm Zed auto-detects it as `Kubernetes`. Verify flow-style highlights: `apiVersion`/`kind` get keyword color, `metadata`/`spec` get type color, `name`/`replicas`/`containers` get attribute color. Check the outline panel shows "Deployment demo-deployment" with nested sections.
+19. Open `fixtures/valid/secret.kyaml` and confirm sensitive values (`password`, `tls.key`) are redacted.
+20. Confirm the language-server status UI shows `Kubernetes Language Server`.
+21. Select the bundled `Kubernetes` icon theme and confirm `*.k8s.yaml`, `*.kubernetes.yml`, `*.kyaml`, and `*.tpl` files use the correct icons in the file tree.

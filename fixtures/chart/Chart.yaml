@@ -1,0 +1,5 @@
+apiVersion: v2
+name: demo
+description: Fixture chart for Helm language validation
+version: 0.1.0
+type: application

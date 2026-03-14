@@ -413,6 +413,13 @@ mod tests {
             .unwrap_or_else(|error| panic!("failed to parse {}: {error}", path.display()))
     }
 
+    fn read_helm_language_config() -> TomlValue {
+        let path = repo_root().join("languages/helm/config.toml");
+        let source = read_repo_file("languages/helm/config.toml");
+        toml::from_str(&source)
+            .unwrap_or_else(|error| panic!("failed to parse {}: {error}", path.display()))
+    }
+
     fn kubernetes_first_line_pattern() -> Regex {
         let config = read_language_config();
         let pattern = config
@@ -420,6 +427,15 @@ mod tests {
             .and_then(TomlValue::as_str)
             .expect("kubernetes config should define first_line_pattern");
         Regex::new(pattern).expect("kubernetes first_line_pattern should compile")
+    }
+
+    fn helm_first_line_pattern() -> Regex {
+        let config = read_helm_language_config();
+        let pattern = config
+            .get("first_line_pattern")
+            .and_then(TomlValue::as_str)
+            .expect("helm config should define first_line_pattern");
+        Regex::new(pattern).expect("helm first_line_pattern should compile")
     }
 
     fn read_fixture(relative_path: &str) -> String {
@@ -667,6 +683,10 @@ mod tests {
             "zed:prepare-next-dev-source should verify the YAML grammar wasm exists for the Kubernetes language",
         );
         assert!(
+            next_source_task.contains("$source_dir/grammars/gotmpl.wasm"),
+            "zed:prepare-next-dev-source should verify the gotmpl grammar wasm exists for the Helm language",
+        );
+        assert!(
             refresh_task.contains("work_dir=\"$user_data_dir/extensions/work/kubernetes\""),
             "zed:refresh-runtime should rotate the current runtime cache directory",
         );
@@ -838,7 +858,7 @@ mod tests {
                 "icon theme should map {suffix} to the kubernetes icon",
             );
         }
-        for suffix in ["helm.yaml", "helm.yml"] {
+        for suffix in ["helm.yaml", "helm.yml", "tpl"] {
             assert_eq!(
                 suffixes.get(suffix).and_then(JsonValue::as_str),
                 Some("helm"),
@@ -898,6 +918,59 @@ mod tests {
         assert_eq!(
             helm_icon.get("path").and_then(JsonValue::as_str),
             Some("./icons/helm.svg"),
+        );
+    }
+
+    #[test]
+    fn extension_manifest_declares_helm_language_server_for_helm() {
+        let manifest = read_extension_manifest();
+        let language_servers = manifest
+            .get("language_servers")
+            .and_then(TomlValue::as_table)
+            .expect("extension manifest should define language_servers");
+
+        let helm_server = language_servers
+            .get("helm-language-server")
+            .and_then(TomlValue::as_table)
+            .expect("helm-language-server table should exist");
+
+        let languages = helm_server
+            .get("languages")
+            .and_then(TomlValue::as_array)
+            .expect("helm-language-server should define languages");
+        assert_eq!(
+            languages.len(),
+            1,
+            "helm-language-server should serve exactly one language",
+        );
+        assert_eq!(
+            languages[0].as_str(),
+            Some("Helm"),
+            "helm-language-server should serve the Helm language",
+        );
+    }
+
+    #[test]
+    fn helm_first_line_pattern_matches_template_start() {
+        let pattern = helm_first_line_pattern();
+
+        assert!(
+            pattern.is_match(first_line_window(&read_fixture(
+                "fixtures/chart/templates/helpers.tpl"
+            ))),
+            "file starting with {{- should match helm first_line_pattern",
+        );
+        assert!(
+            !pattern.is_match(first_line_window(&read_fixture(
+                "fixtures/chart/templates/deployment.tpl"
+            ))),
+            "file starting with apiVersion should not match helm first_line_pattern",
+        );
+        assert!(
+            !pattern.is_match(first_line_window(&read_fixture(
+                "fixtures/valid/deployment.k8s.yaml"
+            ))),
+            "kubernetes file should not match helm first_line_pattern",
         );
     }
 
