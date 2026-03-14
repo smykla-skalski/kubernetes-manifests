@@ -1,20 +1,21 @@
-; Redact values of keys with secret-like names (block + flow)
-[
-  (block_mapping_pair
-    key: (flow_node
-      (plain_scalar
-        (string_scalar) @_key))
-    value: (flow_node) @redact)
-  (flow_pair
-    key: (flow_node
-      (plain_scalar
-        (string_scalar) @_key))
-    value: (flow_node) @redact)
-]
-(#match? @_key
-  "(?i)(password|passwd|secret|token|key|credential|auth|private|oauth|bearer|api.key|api_key|apikey|client.secret|ssh|htpasswd|kubeconfig)")
+; Redact values of keys with secret-like names
+(block_mapping_pair
+  key: (flow_node
+    (plain_scalar
+      (string_scalar) @_key))
+  value: (flow_node) @redact
+  (#match? @_key
+    "(?i)(password|passwd|secret|token|key|credential|auth|private|oauth|bearer|api.key|api_key|apikey|client.secret|ssh|htpasswd|kubeconfig)"))
 
-; Redact all values nested under data: or stringData: (Secret manifests, block)
+(flow_pair
+  key: (flow_node
+    (plain_scalar
+      (string_scalar) @_key))
+  value: (flow_node) @redact
+  (#match? @_key
+    "(?i)(password|passwd|secret|token|key|credential|auth|private|oauth|bearer|api.key|api_key|apikey|client.secret|ssh|htpasswd|kubeconfig)"))
+
+; Redact all values nested under data: or stringData: (Secret manifests)
 (block_mapping_pair
   key: (flow_node) @_data_key
   (#any-of? @_data_key "data" "stringData")
@@ -27,7 +28,6 @@
             (block_scalar) @redact)
         ]))))
 
-; Redact all values nested under data: or stringData: (Secret manifests, flow-style)
 (flow_pair
   key: (flow_node) @_data_key
   (#any-of? @_data_key "data" "stringData")
@@ -36,7 +36,7 @@
       (flow_pair
         value: (flow_node) @redact))))
 
-; Redact known Secret and TLS key names (block)
+; Redact known Secret and TLS key names
 (block_mapping_pair
   key: (flow_node
     (plain_scalar
@@ -50,7 +50,6 @@
     ".dockerconfigjson" ".dockercfg" "tls.crt" "tls.key" "ca.crt" "ca.key" "ssh-privatekey"
     "ssh-publickey"))
 
-; Redact known Secret and TLS key names (flow-style)
 (flow_pair
   key: (flow_node
     (plain_scalar
