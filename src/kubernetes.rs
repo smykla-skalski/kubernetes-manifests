@@ -828,6 +828,7 @@ mod tests {
             "k8s.yml",
             "kubernetes.yaml",
             "kubernetes.yml",
+            "kyaml",
             "kustomize.yaml",
             "kustomize.yml",
         ] {

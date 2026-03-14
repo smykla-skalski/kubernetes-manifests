@@ -55,40 +55,57 @@ key: (flow_node
   "..."
 ] @punctuation.special
 
-; Resource identity keys
-(block_mapping_pair
-  key: (flow_node
-    (plain_scalar
-      (string_scalar) @keyword))
-  (#any-of? @keyword "apiVersion" "kind"))
+; Resource identity keys (block + flow)
+[
+  (block_mapping_pair
+    key: (flow_node
+      (plain_scalar
+        (string_scalar) @keyword)))
+  (flow_pair
+    key: (flow_node
+      (plain_scalar
+        (string_scalar) @keyword)))
+]
+(#any-of? @keyword "apiVersion" "kind")
 
-; Structural sections
-(block_mapping_pair
-  key: (flow_node
-    (plain_scalar
-      (string_scalar) @type))
-  (#any-of? @type "metadata" "spec" "status" "template" "data" "stringData"))
+; Structural sections (block + flow)
+[
+  (block_mapping_pair
+    key: (flow_node
+      (plain_scalar
+        (string_scalar) @type)))
+  (flow_pair
+    key: (flow_node
+      (plain_scalar
+        (string_scalar) @type)))
+]
+(#any-of? @type "metadata" "spec" "status" "template" "data" "stringData")
 
-; Common Kubernetes keys
-(block_mapping_pair
-  key: (flow_node
-    (plain_scalar
-      (string_scalar) @attribute))
-  (#any-of? @attribute
-    "name" "namespace" "labels" "annotations" "containers" "initContainers" "ephemeralContainers"
-    "volumes" "volumeMounts" "volumeDevices" "ports" "env" "envFrom" "resources" "selector"
-    "matchLabels" "matchExpressions" "replicas" "strategy" "image" "imagePullPolicy" "command"
-    "args" "workingDir" "lifecycle" "livenessProbe" "readinessProbe" "startupProbe" "requests"
-    "limits" "serviceAccountName" "rules" "subjects" "roleRef" "restartPolicy"
-    "terminationGracePeriodSeconds" "dnsPolicy" "securityContext" "nodeSelector" "nodeName"
-    "affinity" "tolerations" "topologySpreadConstraints" "priorityClassName" "schedulerName"
-    "runtimeClassName" "imagePullSecrets" "hostNetwork" "hostPID" "hostIPC" "shareProcessNamespace"
-    "clusterIP" "externalIPs" "externalName" "loadBalancerIP" "sessionAffinity" "type"
-    "storageClassName" "accessModes" "volumeName" "volumeMode" "initialDelaySeconds"
-    "timeoutSeconds" "periodSeconds" "successThreshold" "failureThreshold" "exec" "httpGet"
-    "tcpSocket" "grpc" "runAsUser" "runAsGroup" "runAsNonRoot" "readOnlyRootFilesystem"
-    "capabilities" "allowPrivilegeEscalation" "automountServiceAccountToken" "postStart" "preStop"
-    "configMap" "secret" "emptyDir" "hostPath" "persistentVolumeClaim" "projected" "servicePort"
-    "targetPort" "containerPort" "protocol" "path" "pathType" "host" "backend" "minReplicas"
-    "maxReplicas" "metrics" "scaleTargetRef" "podSelector" "policyTypes" "ingress" "egress"
-    "webhooks" "ownerReferences" "finalizers"))
+; Common Kubernetes keys (block + flow)
+[
+  (block_mapping_pair
+    key: (flow_node
+      (plain_scalar
+        (string_scalar) @attribute)))
+  (flow_pair
+    key: (flow_node
+      (plain_scalar
+        (string_scalar) @attribute)))
+]
+(#any-of? @attribute
+  "name" "namespace" "labels" "annotations" "containers" "initContainers" "ephemeralContainers"
+  "volumes" "volumeMounts" "volumeDevices" "ports" "env" "envFrom" "resources" "selector"
+  "matchLabels" "matchExpressions" "replicas" "strategy" "image" "imagePullPolicy" "command" "args"
+  "workingDir" "lifecycle" "livenessProbe" "readinessProbe" "startupProbe" "requests" "limits"
+  "serviceAccountName" "rules" "subjects" "roleRef" "restartPolicy" "terminationGracePeriodSeconds"
+  "dnsPolicy" "securityContext" "nodeSelector" "nodeName" "affinity" "tolerations"
+  "topologySpreadConstraints" "priorityClassName" "schedulerName" "runtimeClassName"
+  "imagePullSecrets" "hostNetwork" "hostPID" "hostIPC" "shareProcessNamespace" "clusterIP"
+  "externalIPs" "externalName" "loadBalancerIP" "sessionAffinity" "type" "storageClassName"
+  "accessModes" "volumeName" "volumeMode" "initialDelaySeconds" "timeoutSeconds" "periodSeconds"
+  "successThreshold" "failureThreshold" "exec" "httpGet" "tcpSocket" "grpc" "runAsUser" "runAsGroup"
+  "runAsNonRoot" "readOnlyRootFilesystem" "capabilities" "allowPrivilegeEscalation"
+  "automountServiceAccountToken" "postStart" "preStop" "configMap" "secret" "emptyDir" "hostPath"
+  "persistentVolumeClaim" "projected" "servicePort" "targetPort" "containerPort" "protocol" "path"
+  "pathType" "host" "backend" "minReplicas" "maxReplicas" "metrics" "scaleTargetRef" "podSelector"
+  "policyTypes" "ingress" "egress" "webhooks" "ownerReferences" "finalizers")

@@ -1,7 +1,7 @@
 name = "Kubernetes"
 code_fence_block_name = "kubernetes"
 grammar = "yaml"
-path_suffixes = ["k8s.yaml", "k8s.yml", "kubernetes.yaml", "kubernetes.yml"]
+path_suffixes = ["k8s.yaml", "k8s.yml", "kubernetes.yaml", "kubernetes.yml", "kyaml"]
 first_line_pattern = "\\A(?:\\u{feff})?apiVersion\\s*:\\s*\\S"
 line_comments = ["# "]
 autoclose_before = ",]}"

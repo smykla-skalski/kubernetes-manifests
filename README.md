@@ -2,7 +2,7 @@
 
 Kubernetes is a standalone Zed extension that adds a distinct `Kubernetes` language mode on top of the same Tree-sitter YAML grammar revision Zed uses for built-in YAML support, backed by `yaml-language-server`. The repo also ships an optional Helm language server integration and a Kubernetes context server for chat workflows.
 
-The extension auto-detects Kubernetes in two ways: by Kubernetes-specific file suffixes (`*.k8s.yaml`, `*.kubernetes.yml`), and by best-effort content matching when the very first line starts with `apiVersion:`. Files opened with a generic `.yaml` extension are still claimed by Zed's built-in YAML language, which wins over content-based detection unless you explicitly remap those file types or switch the language manually.
+The extension auto-detects Kubernetes in three ways: by Kubernetes-specific file suffixes (`*.k8s.yaml`, `*.kubernetes.yml`), by the `.kyaml` extension (Kubernetes 1.34+ flow-style YAML), and by best-effort content matching when the very first line starts with `apiVersion:`. Files opened with a generic `.yaml` extension are still claimed by Zed's built-in YAML language, which wins over content-based detection unless you explicitly remap those file types or switch the language manually.
 
 Markdown fenced code blocks that use the `kubernetes` info string get Kubernetes syntax highlighting. Full Kubernetes LSP inside embedded regions is not available because Zed attaches language servers at the buffer level.
 
@@ -407,5 +407,7 @@ Troubleshooting notes:
 12. Open `fixtures/invalid/invalid-service.k8s.yaml` and confirm diagnostics are reported.
 13. Open `fixtures/embedded/example.md` and confirm the fenced `kubernetes` code block gets Kubernetes syntax highlighting.
 14. Open `fixtures/templates/deployment.tpl`, manually select the `Kubernetes` language for the whole buffer, and confirm the manual whole-buffer workflow behaves as expected for a template-oriented file.
-15. Confirm the language-server status UI shows `Kubernetes Language Server`.
-16. Select the bundled `Kubernetes` icon theme and confirm `*.k8s.yaml` or `*.kubernetes.yml` files use the Kubernetes icon in the language picker instead of the YAML fallback.
+15. Open `fixtures/valid/deployment.kyaml` and confirm Zed auto-detects it as `Kubernetes`. Verify flow-style highlights: `apiVersion`/`kind` get keyword color, `metadata`/`spec` get type color, `name`/`replicas`/`containers` get attribute color. Check the outline panel shows "Deployment demo-deployment" with nested sections.
+16. Open `fixtures/valid/secret.kyaml` and confirm sensitive values (`password`, `tls.key`) are redacted.
+17. Confirm the language-server status UI shows `Kubernetes Language Server`.
+18. Select the bundled `Kubernetes` icon theme and confirm `*.k8s.yaml`, `*.kubernetes.yml`, and `*.kyaml` files use the Kubernetes icon in the language picker instead of the YAML fallback.

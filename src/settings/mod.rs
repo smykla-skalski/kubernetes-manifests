@@ -28,10 +28,12 @@ fn default_schema_globs() -> Value {
         "/*.k8s.yml",
         "/*.kubernetes.yaml",
         "/*.kubernetes.yml",
+        "/*.kyaml",
         "/**/*.k8s.yaml",
         "/**/*.k8s.yml",
         "/**/*.kubernetes.yaml",
-        "/**/*.kubernetes.yml"
+        "/**/*.kubernetes.yml",
+        "/**/*.kyaml"
     ])
 }
 
@@ -717,6 +719,10 @@ mod tests {
         assert!(
             k8s_globs.contains(&json!("/**/*.k8s.yaml")),
             "injection globs should contain narrow k8s suffix patterns",
+        );
+        assert!(
+            k8s_globs.contains(&json!("/**/*.kyaml")),
+            "injection globs should contain kyaml suffix patterns",
         );
         assert!(
             !k8s_globs.contains(&json!("**/*")),
