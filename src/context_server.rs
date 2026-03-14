@@ -87,8 +87,7 @@ impl KubernetesContextServer {
 fn download_binary() -> Result<String, String> {
     let (os, arch) = zed::current_platform();
 
-    let asset_suffix = platform_asset_suffix(os, arch);
-    let asset_name = format!("mcp-k8s-go_{asset_suffix}.tar.gz");
+    let (asset_name, binary_name, file_type) = platform_download_info(os, arch);
 
     let release = zed::latest_github_release(
         GITHUB_REPO,
@@ -107,18 +106,34 @@ fn download_binary() -> Result<String, String> {
     let version_dir = format!("mcp-k8s-go-{}", release.version);
     fs::create_dir_all(&version_dir).map_err(|e| format!("failed to create directory: {e}"))?;
 
-    let binary_path = format!("{version_dir}/mcp-k8s-go");
+    let binary_path = format!("{version_dir}/{binary_name}");
 
-    zed::download_file(
-        &asset.download_url,
-        &version_dir,
-        DownloadedFileType::GzipTar,
-    )?;
+    zed::download_file(&asset.download_url, &version_dir, file_type)?;
     zed::make_file_executable(&binary_path)?;
 
     remove_outdated_versions("mcp-k8s-go-", &version_dir);
 
     Ok(binary_path)
+}
+
+fn platform_download_info(
+    os: Os,
+    arch: Architecture,
+) -> (String, &'static str, DownloadedFileType) {
+    let asset_suffix = platform_asset_suffix(os, arch);
+    let (archive_ext, file_type) = match os {
+        Os::Windows => ("zip", DownloadedFileType::Zip),
+        _ => ("tar.gz", DownloadedFileType::GzipTar),
+    };
+    let binary_name = match os {
+        Os::Windows => "mcp-k8s-go.exe",
+        _ => "mcp-k8s-go",
+    };
+    (
+        format!("mcp-k8s-go_{asset_suffix}.{archive_ext}"),
+        binary_name,
+        file_type,
+    )
 }
 
 fn platform_asset_suffix(os: Os, arch: Architecture) -> String {
@@ -383,5 +398,29 @@ mod tests {
     fn platform_asset_suffix_windows_x86_64() {
         let suffix = platform_asset_suffix(Os::Windows, Architecture::X8664);
         assert_eq!(suffix, "Windows_x86_64");
+    }
+
+    #[test]
+    fn download_uses_zip_archive_on_windows() {
+        let (asset_name, binary_name, file_type) =
+            platform_download_info(Os::Windows, Architecture::X8664);
+        assert_eq!(asset_name, "mcp-k8s-go_Windows_x86_64.zip");
+        assert_eq!(binary_name, "mcp-k8s-go.exe");
+        assert!(
+            matches!(file_type, DownloadedFileType::Zip),
+            "Windows should use Zip file type",
+        );
+    }
+
+    #[test]
+    fn download_uses_tar_gz_archive_on_non_windows() {
+        let (asset_name, binary_name, file_type) =
+            platform_download_info(Os::Mac, Architecture::Aarch64);
+        assert_eq!(asset_name, "mcp-k8s-go_Darwin_arm64.tar.gz");
+        assert_eq!(binary_name, "mcp-k8s-go");
+        assert!(
+            matches!(file_type, DownloadedFileType::GzipTar),
+            "non-Windows should use GzipTar file type",
+        );
     }
 }
