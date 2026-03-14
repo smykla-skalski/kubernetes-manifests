@@ -86,7 +86,7 @@ impl HelmLanguageServer {
         let version_dir = format!("helm-ls-{}", release.version);
         fs::create_dir_all(&version_dir).map_err(|e| format!("failed to create directory: {e}"))?;
 
-        let binary_path = format!("{version_dir}/{BINARY_NAME}");
+        let binary_path = platform_binary_path(&version_dir, os);
 
         zed::download_file(
             &asset.download_url,
@@ -100,6 +100,14 @@ impl HelmLanguageServer {
         self.cached_binary_path = Some(binary_path.clone());
         Ok(binary_path)
     }
+}
+
+fn platform_binary_path(version_dir: &str, os: Os) -> String {
+    let ext = match os {
+        Os::Windows => ".exe",
+        _ => "",
+    };
+    format!("{version_dir}/{BINARY_NAME}{ext}")
 }
 
 fn platform_asset_name(os: Os, arch: Architecture) -> String {
@@ -173,6 +181,18 @@ mod tests {
     fn platform_asset_name_windows_x86_64() {
         let name = platform_asset_name(Os::Windows, Architecture::X8664);
         assert_eq!(name, "helm_ls_windows_amd64.exe");
+    }
+
+    #[test]
+    fn platform_binary_path_appends_exe_on_windows() {
+        let path = platform_binary_path("helm-ls-v1.0.0", Os::Windows);
+        assert_eq!(path, "helm-ls-v1.0.0/helm_ls.exe");
+    }
+
+    #[test]
+    fn platform_binary_path_omits_exe_on_non_windows() {
+        let path = platform_binary_path("helm-ls-v1.0.0", Os::Mac);
+        assert_eq!(path, "helm-ls-v1.0.0/helm_ls");
     }
 
     #[test]
